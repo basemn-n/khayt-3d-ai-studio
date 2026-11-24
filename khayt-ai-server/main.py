@@ -233,38 +233,40 @@ def extract_model_text(result: dict[str, Any]) -> str:
 
 def normalize_design(payload: dict[str, Any], width: float, height: float) -> dict[str, Any]:
     raw_objects = payload.get("objects")
-    if not isinstance(raw_objects, list) or not raw_objects:
-        raise HTTPException(status_code=502, detail="لم ينتج الذكاء الاصطناعي أي كائنات تصميم.")
-    if len(raw_objects) > 40:
-        raw_objects = raw_objects[:40]
+    if not isinstance(raw_objects, list) or not 3 <= len(raw_objects) <= 18:
+        raise HTTPException(status_code=502, detail="يجب أن يحتوي التصميم على 3 إلى 18 كائناً هندسياً صالحاً.")
 
     objects: list[dict[str, Any]] = []
     for index, raw in enumerate(raw_objects, start=1):
         if not isinstance(raw, dict):
-            continue
-        kind = str(raw.get("type", "tatami"))
+            raise HTTPException(status_code=502, detail=f"الكائن {index} ليس بنية هندسية صحيحة.")
+        kind = str(raw.get("type", ""))
         if kind not in ALLOWED_TYPES:
             raise HTTPException(status_code=502, detail=f"نوع غرزة غير مدعوم في الكائن {index}: {kind}. لم يتم تغيير النوع تلقائياً.")
 
         points = raw.get("points", [])
-        if not isinstance(points, list):
-            continue
+        if not isinstance(points, list) or not 4 <= len(points) <= 40:
+            raise HTTPException(status_code=502, detail=f"عدد نقاط الكائن {index} يجب أن يكون بين 4 و40.")
         clean_points = []
-        for point in points[:100]:
+        for point in points:
             if not isinstance(point, dict):
-                continue
+                raise HTTPException(status_code=502, detail=f"نقطة غير صالحة في الكائن {index}.")
             try:
-                x = max(0.0, min(1.0, float(point.get("x", 0.5))))
-                y = max(0.0, min(1.0, float(point.get("y", 0.5))))
-            except (TypeError, ValueError):
-                continue
+                x = float(point["x"])
+                y = float(point["y"])
+            except (KeyError, TypeError, ValueError):
+                raise HTTPException(status_code=502, detail=f"إحداثيات غير رقمية في الكائن {index}.")
+            if not math.isfinite(x) or not math.isfinite(y) or not 0 <= x <= 1 or not 0 <= y <= 1:
+                raise HTTPException(status_code=502, detail=f"إحداثيات الكائن {index} خارج النطاق 0 إلى 1.")
             clean_points.append({
                 "x": round(x, 5),
                 "y": round(y, 5),
                 "curve": bool(point.get("curve", False)),
             })
 
-        closed = bool(raw.get("closed", False))
+        if not isinstance(raw.get("closed"), bool):
+            raise HTTPException(status_code=502, detail=f"حالة الإغلاق مفقودة أو غير منطقية في الكائن {index}.")
+        closed = raw["closed"]
         if closed and (kind != "tatami" or len(clean_points) < 9):
             raise HTTPException(status_code=502, detail=f"الكائن {index} يحتاج شكلاً مغلقاً من نوع tatami وبـ9 نقاط على الأقل.")
         if not closed and (kind not in {"satin", "run", "triple", "backstitch"} or len(clean_points) < 4):
@@ -277,13 +279,13 @@ def normalize_design(payload: dict[str, Any], width: float, height: float) -> di
             if area < 0.0005:
                 raise HTTPException(status_code=502, detail=f"مساحة الكائن {index} صغيرة جداً أو نقاطه على خط واحد.")
 
-        color = str(raw.get("color", "#176447"))
+        color = str(raw.get("color", ""))
         if not (len(color) == 7 and color.startswith("#")):
-            color = "#176447"
+            raise HTTPException(status_code=502, detail=f"لون غير صالح في الكائن {index}.")
         try:
             int(color[1:], 16)
         except ValueError:
-            color = "#176447"
+            raise HTTPException(status_code=502, detail=f"لون غير صالح في الكائن {index}.")
 
         def bounded(key: str, default: float, low: float, high: float) -> float:
             try:
