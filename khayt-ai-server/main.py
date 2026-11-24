@@ -25,6 +25,8 @@ OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4.1")
 TRANSCRIBE_MODEL = os.getenv("OPENAI_TRANSCRIBE_MODEL", "gpt-4o-mini-transcribe")
 AI_PROVIDER = os.getenv("AI_PROVIDER", "cloudflare").strip().lower()
 CF_TEXT_MODEL = os.getenv("CLOUDFLARE_TEXT_MODEL", "@cf/meta/llama-3.3-70b-instruct-fp8-fast")
+CF_VISION_MODEL = os.getenv("CLOUDFLARE_VISION_MODEL", "@cf/meta/llama-3.2-11b-vision-instruct")
+CF_VISION_LICENSE_ACCEPTED = False
 CF_AUDIO_MODEL = os.getenv("CLOUDFLARE_AUDIO_MODEL", "@cf/openai/whisper")
 MAX_IMAGE_BYTES = 12 * 1024 * 1024
 MAX_AUDIO_BYTES = 25 * 1024 * 1024
@@ -450,6 +452,7 @@ objects مصفوفة من 3 إلى 18 كائناً. كل كائن يحتوي nam
         "type": "text",
         "text": prompt or "حلّل الصورة المرجعية وأنشئ منها تصميماً مناسباً للتطريز.",
     }]
+    image_data_url: str | None = None
     if image is not None:
         content_type = (image.content_type or "").lower()
         if content_type not in ALLOWED_IMAGE_TYPES:
@@ -458,6 +461,7 @@ objects مصفوفة من 3 إلى 18 كائناً. كل كائن يحتوي nam
         if not raw_image or len(raw_image) > MAX_IMAGE_BYTES:
             raise HTTPException(status_code=413, detail="حجم الصورة فارغ أو يتجاوز 12 ميجابايت.")
         encoded = base64.b64encode(raw_image).decode("ascii")
+        image_data_url = f"data:{content_type};base64,{encoded}"
         user_content.append({
             "type": "image_url",
             "image_url": {"url": f"data:{content_type};base64,{encoded}", "detail": "high"},
@@ -511,12 +515,32 @@ objects مصفوفة من 3 إلى 18 كائناً. كل كائن يحتوي nam
 
     try:
         if AI_PROVIDER == "cloudflare":
-            if image is not None:
-                raise HTTPException(status_code=501, detail="في الوضع المجاني الحالي، أنشئ التصميم من الوصف النصي. دعم تحليل الصور المرجعية سيضاف بعد اختبار واجهة الرؤية.")
+            generation_prompt = prompt or "أنشئ تصميماً زخرفياً مناسباً للتطريز."
+            if image_data_url:
+                global CF_VISION_LICENSE_ACCEPTED
+                if not CF_VISION_LICENSE_ACCEPTED:
+                    await cloudflare_run(CF_VISION_MODEL, {"prompt": "agree"})
+                    CF_VISION_LICENSE_ACCEPTED = True
+                vision_result = await cloudflare_run(CF_VISION_MODEL, {
+                    "messages": [
+                        {"role": "system", "content": "أنت محلل صور تطريز. صف العناصر المرئية والألوان والأجزاء والعلاقات المكانية والحدود بوضوح. لا تخترع عناصر غير موجودة ولا تُخرج إحداثيات."},
+                        {"role": "user", "content": [
+                            {"type": "text", "text": generation_prompt + "\\nحلل الصورة المرجعية المرفقة لاستخدامها في بناء مخطط تطريز."},
+                            {"type": "image_url", "image_url": {"url": image_data_url}},
+                        ]},
+                    ],
+                    "max_tokens": 1200,
+                    "temperature": 0.1,
+                })
+                image_description = extract_model_text(vision_result)
+                if not image_description:
+                    raise HTTPException(status_code=502, detail="لم يتمكن نموذج الرؤية من تحليل الصورة المرجعية.")
+                generation_prompt += "\\nوصف الصورة المرجعية بعد تحليلها: " + image_description
+
             result = await cloudflare_run(CF_TEXT_MODEL, {
                 "messages": [
                     {"role": "system", "content": instructions + "\nأعد JSON صالحاً فقط دون Markdown أو شرح خارج JSON."},
-                    {"role": "user", "content": prompt or "أنشئ تصميماً زخرفياً مناسباً للتطريز."},
+                    {"role": "user", "content": generation_prompt},
                 ],
                 "response_format": {"type": "json_schema", "json_schema": geometry_schema},
                 "max_tokens": 6000,
@@ -563,7 +587,7 @@ objects مصفوفة من 3 إلى 18 كائناً. كل كائن يحتوي nam
                             "content": (
                                 "أنشئ JSON صالحاً الآن. ارسم الأشكال المطلوبة فعلياً بنقاط كافية وحدود طبيعية. "
                                 "اجعل الأشكال المغلقة من 9 إلى 24 نقطة والمسارات المفتوحة من 4 إلى 10 نقاط. "
-                                "طلب المستخدم: " + prompt
+                                "طلب المستخدم: " + generation_prompt
                                 + "\\nالأبعاد: " + str(width_mm) + " × " + str(height_mm) + " مم. القماش: " + fabric
                             ),
                         },
