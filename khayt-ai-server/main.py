@@ -119,6 +119,33 @@ ALLOWED_TYPES = {
 }
 
 
+
+
+def parse_model_json(raw: str) -> dict[str, Any] | None:
+    """Parse a JSON object even when the model wraps it in prose or Markdown."""
+    if not raw:
+        return None
+    text = raw.strip().replace("```json", "").replace("```", "").strip()
+    decoder = json.JSONDecoder()
+    # First try the complete response, then scan for the first valid JSON object.
+    try:
+        value = json.loads(text)
+        if isinstance(value, dict):
+            return value
+    except (json.JSONDecodeError, TypeError):
+        pass
+    for index, char in enumerate(text):
+        if char != "{":
+            continue
+        try:
+            value, _end = decoder.raw_decode(text[index:])
+            if isinstance(value, dict):
+                return value
+        except json.JSONDecodeError:
+            continue
+    return None
+
+
 def normalize_design(payload: dict[str, Any], width: float, height: float) -> dict[str, Any]:
     raw_objects = payload.get("objects")
     if not isinstance(raw_objects, list) or not raw_objects:
@@ -284,9 +311,42 @@ angle (-180 إلى 180)، satin_width (0.5 إلى 12 مم).
                 "temperature": 0.25,
             })
             raw = str(result.get("response") or result.get("text") or "").strip()
-            if raw.startswith("```"):
-                raw = raw.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
-            payload = json.loads(raw)
+            payload = parse_model_json(raw)
+
+            # One repair attempt: small instruction models sometimes add prose
+            # or Markdown despite being asked for JSON only.
+            if payload is None:
+                repair = await cloudflare_run(CF_TEXT_MODEL, {
+                    "messages": [
+                        {
+                            "role": "system",
+                            "content": (
+                                "أنت مولّد JSON فقط. أعد كائن JSON صالحاً يبدأ بـ { وينتهي بـ }. "
+                                "ممنوع Markdown أو الشرح أو أي نص خارج JSON. "
+                                "المفاتيح المطلوبة summary و objects، وكل object يحتوي name و type و points و closed و color."
+                            ),
+                        },
+                        {
+                            "role": "user",
+                            "content": (
+                                "حوّل هذا الرد إلى JSON صالح مطابق للمخطط المطلوب، "
+                                "ولا تضف أي نص خارجه. إذا لم تجد بيانات كافية فأنشئ تصميماً بسيطاً صالحاً.\n"
+                                + raw[:9000]
+                            ),
+                        },
+                    ],
+                    "max_tokens": 3500,
+                    "temperature": 0.0,
+                })
+                repaired_raw = str(repair.get("response") or repair.get("text") or "").strip()
+                payload = parse_model_json(repaired_raw)
+
+            if payload is None:
+                logger.warning("Cloudflare model response was not parseable JSON (length=%s).", len(raw))
+                raise HTTPException(
+                    status_code=502,
+                    detail="لم يُرجع نموذج الذكاء الاصطناعي مخططاً صالحاً حتى بعد إعادة المحاولة. جرّب وصفاً أبسط ومحدداً.",
+                )
             normalized = normalize_design(payload, width_mm, height_mm)
             normalized["model"] = CF_TEXT_MODEL
             normalized["provider"] = "Cloudflare Workers AI"
