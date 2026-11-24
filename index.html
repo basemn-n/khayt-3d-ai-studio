@@ -89,8 +89,13 @@ function setTool(t){S.tool=t;S.points=[];document.querySelectorAll('.tool').forE
 function addObject(pts,tool,closed,curved){if(tool==='inputA'&&pts.length<4){S.points=[];draw();toast('عمود الساتان A يحتاج نقطتين متقابلتين على الأقل في مقطعين؛ أضف 4 نقاط أو أكثر');return}if(pts.length<(closed?3:2)){S.points=[];draw();return}let o={tool,points:pts.map(p=>({...p})),closed,curved,color:S.thread,opts:currentOpts(),stitches:[]};if(tool==='inputA'&&pts.length>=2){o.tool='inputA';o.opts.fill='satin';o.points=pts}if(tool==='inputB'){o.tool='inputB';o.closed=true}if(tool==='inputC'){o.tool='inputC';o.opts.fill='satin'}remember();S.objects.push(o);S.selected=S.objects.length-1;S.points=[];recalc();toast('تم إنشاء الكائن وتحويله إلى غرز')}
 
 function createSamaiLogo(){
- if(S.objects.length&&!confirm('سيُضاف الشعار إلى التصميم الحالي. هل تريد المتابعة؟'))return;
+ const oldCount=S.objects.length;
+ if(oldCount&&!confirm('سيُضاف الشعار إلى التصميم الحالي. هل تريد المتابعة؟'))return;
  remember();
+ // Give the logo a guaranteed visible 300 × 300 mm working area.
+ $('fabricW').value='300';$('fabricH').value='300';
+ $('fabricSize').textContent='300 × 300 مم';
+ S.fabric=$('fabricColor').value||'#f4f0e8';
  const opts={...currentOpts(),fill:'tatami',spacing:.42,len:3.2,max:7,angle:18,underlay:true,underlayType:'edge'};
  const burgundy='#9f1838',gold='#c69a3b',rose='#d94b68',pink='#ef91a5',green='#24734b',dark='#6f1830';
  const ellipse=(cx,cy,rx,ry,n=24,rot=0)=>Array.from({length:n},(_,i)=>{const a=2*Math.PI*i/n+rot;return{x:cx+Math.cos(a)*rx,y:cy+Math.sin(a)*ry}});
@@ -127,9 +132,23 @@ function createSamaiLogo(){
  add('امتداد زخرفي يمين', [{x:195,y:174},{x:206,y:181},{x:218,y:179}],gold,'satinWide',false,{lineW:1.2,len:2.5});
  S.selected=S.objects.length-1;
  $('projectName').value='شعار السامعي للتطريز';
- recalc();setStep(7);persistDraft();toast('تم بناء عناصر الشعار كأشكال ومسارات قابلة للتعديل. أضف كتابة الاسم قبل اعتماد الإنتاج.');
+ try{
+  recalc();
+  setStep(7);
+  draw();
+  renderObjectList();
+  persistDraft();
+  $('status').textContent='تم إنشاء شعار السامعي — '+(S.objects.length-oldCount)+' عناصر جديدة';
+  toast('ظهر شعار السامعي في مساحة العمل والطبقات. يمكنك تحديد أي عنصر وتعديله.');
+ }catch(err){
+  console.error('Samai logo creation failed:',err);
+  S.objects.splice(oldCount);
+  S.selected=-1;
+  recalc();
+  toast('تعذر إنشاء الشعار: '+(err?.message||'خطأ غير معروف'));
+ }
 }
-$('samaiLogoBtn').onclick=createSamaiLogo;
+$('samaiLogoBtn').onclick=()=>{try{createSamaiLogo()}catch(err){console.error(err);toast('حدث خطأ أثناء إنشاء الشعار: '+(err?.message||err))}};
 
 function finishDrawing(){if(S.awaitDirection){if(S.points.length<2){toast('حدد اتجاه الغرز بنقطتين');return}let a=S.points[0],b=S.points[S.points.length-1],ang=Math.atan2(b.y-a.y,b.x-a.x)*180/Math.PI;$('angle').value=Math.round(ang);S.shapeDraft.opts=currentOpts();S.shapeDraft.opts.angle=ang;let draft=S.shapeDraft;S.awaitDirection=false;S.shapeDraft=null;addObject(draft.points,'inputB',true,draft.curved);return}if(S.points.length<2)return;let t=S.tool,closed=['fusion','complex','inputB','circle','star','ring','applique'].includes(t);if(t==='inputA'&&S.points.length%2!==0){toast('مدخلات A تتطلب نقاطاً متقابلة بعدد زوجي');return}if(t==='inputB'){S.shapeDraft={points:S.points.map(p=>({...p})),curved:S.points.some(p=>p.curve),opts:currentOpts()};S.points=[];S.awaitDirection=true;toast('الآن ارسم خط اتجاه الغرز بنقطتين ثم اضغط Enter');$('canvasHint').textContent='ارسم اتجاه الغرز: نقطة البداية ثم نقطة النهاية، ثم Enter';draw();return}addObject(S.points,t,closed,S.points.some(p=>p.curve));}
 function findHit(p){for(let i=S.objects.length-1;i>=0;i--){let o=S.objects[i];if(o.closed&&inside(p,o.points))return i;let pts=o.points;for(let j=0;j<pts.length;j++)if(Math.hypot(p.x-pts[j].x,p.y-pts[j].y)<5)return i}return-1}
