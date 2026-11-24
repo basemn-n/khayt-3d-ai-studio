@@ -313,40 +313,62 @@ angle (-180 إلى 180)، satin_width (0.5 إلى 12 مم).
             raw = str(result.get("response") or result.get("text") or "").strip()
             payload = parse_model_json(raw)
 
-            # One repair attempt: small instruction models sometimes add prose
-            # or Markdown despite being asked for JSON only.
-            if payload is None:
+            def contains_objects(value: dict[str, Any] | None) -> bool:
+                if not isinstance(value, dict):
+                    return False
+                candidates = value.get("objects")
+                if not isinstance(candidates, list) or not candidates:
+                    candidates = value.get("elements") or value.get("shapes") or value.get("paths")
+                return isinstance(candidates, list) and any(
+                    isinstance(item, dict) and isinstance(item.get("points"), list) and len(item["points"]) >= 2
+                    for item in candidates
+                )
+
+            # Retry if the model returned prose, malformed JSON, or JSON without geometry.
+            if not contains_objects(payload):
                 repair = await cloudflare_run(CF_TEXT_MODEL, {
                     "messages": [
                         {
                             "role": "system",
                             "content": (
-                                "أنت مولّد JSON فقط. أعد كائن JSON صالحاً يبدأ بـ { وينتهي بـ }. "
-                                "ممنوع Markdown أو الشرح أو أي نص خارج JSON. "
-                                "المفاتيح المطلوبة summary و objects، وكل object يحتوي name و type و points و closed و color."
+                                "أنت مهندس تطريز ومهمتك إنشاء مخطط هندسي. أخرج JSON فقط دون Markdown. "
+                                "يجب أن يحتوي الجذر على summary نص عربي و objects مصفوفة غير فارغة. "
+                                "أنشئ من 3 إلى 7 أشكال فعلية. كل عنصر في objects يجب أن يحتوي: "
+                                "name نص، type من tatami أو satin أو run أو motif، "
+                                "points مصفوفة من 3 إلى 12 نقطة، وكل نقطة {x رقم بين 0 و1, y رقم بين 0 و1, curve false}، "
+                                "closed قيمة true أو false، color بصيغة #RRGGBB. "
+                                "لا تستخدم مفاتيح بديلة مثل elements أو shapes. لا تترك objects فارغة."
                             ),
                         },
                         {
                             "role": "user",
                             "content": (
-                                "حوّل هذا الرد إلى JSON صالح مطابق للمخطط المطلوب، "
-                                "ولا تضف أي نص خارجه. إذا لم تجد بيانات كافية فأنشئ تصميماً بسيطاً صالحاً.\n"
-                                + raw[:9000]
+                                "أنشئ هندسة التصميم من هذا الطلب: " + prompt
+                                + "\nالأبعاد بالملليمتر: " + str(width_mm) + " × " + str(height_mm)
+                                + "\nنوع القماش: " + fabric
+                                + "\nالرد السابق الذي لم يتضمن أشكالاً صالحة (للاستفادة منه فقط): "
+                                + raw[:3500]
                             ),
                         },
                     ],
                     "max_tokens": 3500,
-                    "temperature": 0.0,
+                    "temperature": 0.2,
                 })
                 repaired_raw = str(repair.get("response") or repair.get("text") or "").strip()
-                payload = parse_model_json(repaired_raw)
+                repaired_payload = parse_model_json(repaired_raw)
+                if contains_objects(repaired_payload):
+                    payload = repaired_payload
+                else:
+                    logger.warning(
+                        "Cloudflare response missing geometry after retry (initial_length=%s, retry_length=%s, keys=%s).",
+                        len(raw), len(repaired_raw),
+                        list(repaired_payload.keys()) if isinstance(repaired_payload, dict) else [],
+                    )
+                    raise HTTPException(
+                        status_code=502,
+                        detail="لم يُنشئ النموذج الأشكال الهندسية المطلوبة. جرّب وصفاً محدداً مثل: وردة بخمس بتلات وساق وورقتين.",
+                    )
 
-            if payload is None:
-                logger.warning("Cloudflare model response was not parseable JSON (length=%s).", len(raw))
-                raise HTTPException(
-                    status_code=502,
-                    detail="لم يُرجع نموذج الذكاء الاصطناعي مخططاً صالحاً حتى بعد إعادة المحاولة. جرّب وصفاً أبسط ومحدداً.",
-                )
             normalized = normalize_design(payload, width_mm, height_mm)
             normalized["model"] = CF_TEXT_MODEL
             normalized["provider"] = "Cloudflare Workers AI"
