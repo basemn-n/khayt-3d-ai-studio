@@ -425,24 +425,19 @@ async def create_design(
 
     client = None if AI_PROVIDER == "cloudflare" else get_client()
     instructions = f"""
-أنت مهندس تصميم تطريز آلي محترف. حوّل طلب المستخدم إلى مخطط هندسي ثنائي الأبعاد
-مكوّن من أشكال ومسارات قابلة للتحويل إلى غرز في برنامج خيط 3D.
+أنت مهندس تصميم تطريز آلي. حوّل طلب المستخدم إلى مخطط هندسي ثنائي الأبعاد قابل للتحرير والتحويل إلى غرز.
 أبعاد القماش: {width_mm} × {height_mm} مم. نوع القماش: {fabric}.
-أعد JSON فقط بالمفاتيح:
-summary: وصف عربي موجز.
-objects: مصفوفة من 1 إلى 18 كائناً. لكل كائن:
-name (اسم عربي قصير)، type (واحد من tatami,motif,satin,run,triple,backstitch,widezig,applique,ring,star,circle,inputA,inputB)،
-points (مصفوفة نقاط بين 0 و1 نسبةً إلى عرض وارتفاع القماش، كل نقطة {{"x":0.5,"y":0.5,"curve":false}})،
-closed (boolean)، color (#RRGGBB)، fill، spacing (0.2 إلى 1.2)،
-stitch_length (0.5 إلى 7 مم)، max_stitch_length (1 إلى 12 مم)،
-angle (-180 إلى 180)، satin_width (0.5 إلى 12 مم).
-ارسم حدوداً هندسية دقيقة وغنية بالتفاصيل، ولا تضع أي نقطة خارج 0..1.
-للأشكال المغلقة المملوءة مثل البتلات والأوراق والزهور: استخدم 16 إلى 28 نقطة مميزة موزعة على المحيط، ولا تكتفِ بالحد الأدنى. يجب أن يكون المحيط ناعماً عضوياً وليس مضلعاً حاداً. اجعل كل بتلة عريضة مستديرة ذات قمة منحنية وقاعدة أضيق متصلة بمركز الزهرة، مع اختلاف اتجاهها وموقعها حول المركز. اجعل الأوراق طويلة ومدببة الطرفين ومنحنية الجانبين مع عرق وسطي منفصل عند الحاجة. للأشكال الصغيرة مثل مركز الزهرة استخدم 12 إلى 18 نقطة. للمسارات المفتوحة مثل السيقان استخدم 6 إلى 12 نقطة على مسار انسيابي. استخدم curve=true للنقاط التي تنتمي إلى أجزاء منحنية، مع إبقاء نقاط الأطراف الحادة curve=false. تجنب تكرار نفس الشكل أو نفس إحداثيات الكائنات.
-قسّم التصميم إلى كائنات منفصلة حسب الألوان والأجزاء، ووازن بين التفاصيل وسهولة التطريز. لا تعتبر الشكل صالحاً إذا كان حدّه مجرد مضلع خماسي بدائي. استخدم tatami للأشكال المغلقة العريضة. استخدم satin فقط للأعمدة الرفيعة والمسارات المفتوحة ذات محور مركزي واضح (closed=false)، مع 2 إلى 40 نقطة على محور العمود. استخدم run للخطوط الرفيعة جداً. لا ترسم عمود satin كحد مغلق.
-مهم جداً: اكتب بيانات الأشكال داخل objects مباشرة، ولا تكتب وصفاً أو اعتذاراً بدلاً من JSON. استخدم هذا المثال كقالب بنية حرفي، وغيّر الأسماء والنقاط والألوان لتناسب طلب المستخدم:
-{{"summary":"تصميم تطريز بسيط","objects":[{{"name":"شكل أحمر","type":"tatami","points":[{{"x":0.40,"y":0.30,"curve":false}},{{"x":0.60,"y":0.30,"curve":false}},{{"x":0.60,"y":0.50,"curve":false}},{{"x":0.40,"y":0.50,"curve":false}}],"closed":true,"color":"#D92D45","fill":"tatami","spacing":0.45,"stitch_length":3.2,"max_stitch_length":7,"angle":45,"satin_width":3}},{{"name":"خط أخضر","type":"run","points":[{{"x":0.50,"y":0.55,"curve":false}},{{"x":0.50,"y":0.80,"curve":false}}],"closed":false,"color":"#23834B","fill":"run"}}]}}
-لا تستخدم كلمة fusion كنوع أو خوارزمية. لا تضع علامات Markdown أو نصاً خارج JSON.
-لا تدّعِ أن المخطط ملف DST نهائي؛ إنه مقترح هندسي سيُراجع ويحوّل إلى غرز داخل البرنامج.
+أخرج JSON فقط بالمفتاحين summary و objects.
+objects مصفوفة من 3 إلى 18 كائناً. كل كائن يحتوي name و type و points و closed و color.
+type يجب أن يكون واحداً من: tatami أو satin أو run أو motif أو triple أو backstitch.
+كل نقطة كائن يحوي x و y بين 0 و1 و curve قيمة true أو false.
+للشكل المغلق: استخدم 9 إلى 24 نقطة على المحيط. لا تستخدم مثلثات أو خماسيات بدائية. اجعل البتلات مستديرة والأوراق طويلة ومدببة بانحناءات طبيعية.
+للمسار المفتوح: استخدم 4 إلى 10 نقاط على محور المسار.
+اجعل النقاط موزعة على الشكل وليست متقاربة في موضع واحد. لا تكرر الإحداثيات أو الأشكال.
+قسّم التصميم إلى أجزاء منفصلة حسب اللون. استخدم tatami للمساحات العريضة المغلقة، satin للأعمدة الرفيعة، وrun للخطوط الرفيعة.
+يمكن إضافة fill و spacing و stitch_length و max_stitch_length و angle و satin_width عند الحاجة.
+كل الإحداثيات ضمن 0..1. لا تكتب fusion كنوع. لا تضع Markdown أو شرحاً خارج JSON.
+لا تدّعِ أن الناتج ملف DST نهائي؛ إنه مقترح هندسي سيحوّله البرنامج إلى غرز.
 """
 
     user_content: list[dict[str, Any]] = [{
@@ -479,7 +474,7 @@ angle (-180 إلى 180)، satin_width (0.5 إلى 12 مم).
                         "type": {"type": "string", "enum": ["tatami", "satin", "run", "motif", "triple", "backstitch"]},
                         "points": {
                             "type": "array",
-                            "minItems": 3,
+                            "minItems": 4,
                             "maxItems": 40,
                             "items": {
                                 "type": "object",
@@ -536,38 +531,34 @@ angle (-180 إلى 180)، satin_width (0.5 إلى 12 مم).
                     if not isinstance(item, dict) or not isinstance(item.get("points"), list):
                         return False
                     points = item["points"]
-                    if item.get("closed") is True and len(points) < 14:
+                    if item.get("closed") is True and len(points) < 9:
                         return False
-                    if item.get("closed") is False and len(points) < 6:
+                    if item.get("closed") is False and len(points) < 4:
                         return False
                 return True
 
-            # Retry if the model returned prose, malformed JSON, or JSON without geometry.
+            # Retry once with a shorter, internally consistent geometry contract.
             if not contains_objects(payload):
                 repair = await cloudflare_run(CF_TEXT_MODEL, {
                     "messages": [
                         {
                             "role": "system",
                             "content": (
-                                "أنت مهندس تطريز ومهمتك إنشاء مخطط هندسي. أخرج JSON فقط دون Markdown. "
-                                "يجب أن يحتوي الجذر على summary نص عربي و objects مصفوفة غير فارغة. "
-                                "أنشئ من 3 إلى 7 أشكال فعلية. كل عنصر في objects يجب أن يحتوي: "
-                                "name نص، type من tatami أو satin أو run أو motif، "
-                                "points مصفوفة من 16 إلى 28 نقطة للأشكال المغلقة، ومن 6 إلى 12 نقطة للمسارات المفتوحة، وكل نقطة {x رقم بين 0 و1, y رقم بين 0 و1, curve قيمة منطقية}، "
-                                "closed قيمة true أو false، color بصيغة #RRGGBB. "
-                                "لا تستخدم مفاتيح بديلة مثل elements أو shapes. لا تترك objects فارغة."
+                                "أنت مهندس تطريز. أخرج JSON فقط بالمفتاحين summary و objects. "
+                                "أنشئ 3 إلى 12 كائناً. كل كائن يحتوي name و type و points و closed و color. "
+                                "type واحد من tatami أو satin أو run أو motif أو triple أو backstitch. "
+                                "كل نقطة تحوي x و y بين 0 و1 و curve منطقية. "
+                                "كل شكل مغلق يحتاج 9 نقاط على الأقل، وكل مسار مفتوح يحتاج 4 نقاط على الأقل. "
+                                "لا تستخدم أمثلة مختصرة أو نقاطاً أقل من الحد المطلوب."
                             ),
                         },
                         {
                             "role": "user",
                             "content": (
-                                "أنشئ الآن JSON كاملاً وصالحاً. يجب أن يحتوي الجذر على summary و objects. "
-                                + "ضع 3 إلى 12 كائناً، وكل شكل مغلق يحتوي 14 نقطة على الأقل، وكل مسار مفتوح يحتوي 6 نقاط على الأقل، مع name و type و points و closed و color. "
-                                + "كل نقطة كائن به x و y رقمان بين 0 و1 و curve قيمة منطقية. لا تستخدم مضلعات قليلة النقاط؛ ارسم حدوداً عضوية منحنية مفصلة، واجعل curve=true على نقاط الانحناء. "
-                                + "مثال مختصر: {\"summary\":\"تصميم\",\"objects\":[{\"name\":\"بتلة\",\"type\":\"tatami\",\"points\":[{\"x\":0.4,\"y\":0.3,\"curve\":false},{\"x\":0.6,\"y\":0.3,\"curve\":false},{\"x\":0.5,\"y\":0.5,\"curve\":false}],\"closed\":true,\"color\":\"#D92D45\"}]}. "
-                                + "طلب المستخدم: " + prompt
-                                + "\nالأبعاد: " + str(width_mm) + " × " + str(height_mm) + " مم. القماش: " + fabric
-                                + "\nلا تكرر الرد السابق ولا تشرح؛ أنشئ هندسة جديدة مطابقة للمطلوب."
+                                "أنشئ JSON صالحاً الآن. ارسم الأشكال المطلوبة فعلياً بنقاط كافية وحدود طبيعية. "
+                                "اجعل الأشكال المغلقة من 9 إلى 24 نقطة والمسارات المفتوحة من 4 إلى 10 نقاط. "
+                                "طلب المستخدم: " + prompt
+                                + "\\nالأبعاد: " + str(width_mm) + " × " + str(height_mm) + " مم. القماش: " + fabric
                             ),
                         },
                     ],
@@ -581,14 +572,13 @@ angle (-180 إلى 180)، satin_width (0.5 إلى 12 مم).
                     payload = repaired_payload
                 else:
                     logger.warning(
-                        "Cloudflare response missing geometry after retry (initial_length=%s, retry_length=%s, keys=%s).",
+                        "Cloudflare geometry rejected after retry (initial_length=%s, retry_length=%s, keys=%s).",
                         len(raw), len(repaired_raw),
                         list(repaired_payload.keys()) if isinstance(repaired_payload, dict) else [],
                     )
-                    # Never present a hand-built template as an AI-generated result.
                     raise HTTPException(
                         status_code=502,
-                        detail="لم يُنشئ النموذج الأشكال الهندسية المطلوبة. جرّب وصفاً أبسط أو قالباً جاهزاً.",
+                        detail="لم يتمكن النموذج من إنشاء هندسة صالحة بعد محاولتين. جرّب وصفاً أبسط.",
                     )
 
             normalized = normalize_design(payload, width_mm, height_mm)
