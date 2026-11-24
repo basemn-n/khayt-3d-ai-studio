@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import json
 import logging
+import math
 import os
 from typing import Any
 
@@ -228,6 +229,81 @@ def normalize_design(payload: dict[str, Any], width: float, height: float) -> di
     }
 
 
+def fallback_flower_design() -> dict[str, Any]:
+    """Deterministic, editable flower geometry used only when the AI fails."""
+    def ellipse(cx: float, cy: float, rx: float, ry: float, count: int = 20, rotation: float = 0) -> list[dict[str, Any]]:
+        points = []
+        angle0 = math.radians(rotation)
+        for i in range(count):
+            t = 2 * math.pi * i / count
+            x = rx * math.cos(t)
+            y = ry * math.sin(t)
+            points.append({
+                "x": round(max(0.02, min(0.98, cx + x * math.cos(angle0) - y * math.sin(angle0))), 5),
+                "y": round(max(0.02, min(0.98, cy + x * math.sin(angle0) + y * math.cos(angle0))), 5),
+                "curve": False,
+            })
+        return points
+
+    objects: list[dict[str, Any]] = []
+    # Five red petals around the flower center.
+    for i in range(5):
+        angle = -90 + i * 72
+        radians = math.radians(angle)
+        cx = 0.5 + 0.145 * math.cos(radians)
+        cy = 0.34 + 0.145 * math.sin(radians)
+        objects.append({
+            "name": f"بتلة {i + 1}", "type": "tatami",
+            "points": ellipse(cx, cy, 0.083, 0.125, 24, angle + 90),
+            "closed": True, "color": "#D92D45", "fill": "tatami",
+            "angle": 45,
+        })
+    objects.extend([
+        {
+            "name": "قلب الوردة", "type": "tatami",
+            "points": ellipse(0.5, 0.34, 0.065, 0.065, 24),
+            "closed": True, "color": "#F5C542", "fill": "tatami",
+        },
+        {
+            "name": "ساق خضراء", "type": "run",
+            "points": [
+                {"x": 0.5, "y": 0.43, "curve": False},
+                {"x": 0.505, "y": 0.57, "curve": False},
+                {"x": 0.495, "y": 0.72, "curve": False},
+                {"x": 0.5, "y": 0.9, "curve": False},
+            ],
+            "closed": False, "color": "#23834B", "fill": "satin",
+            "stitch_length": 2.5,
+        },
+        {
+            "name": "ورقة يسرى", "type": "tatami",
+            "points": [
+                {"x": 0.495, "y": 0.68, "curve": False},
+                {"x": 0.39, "y": 0.61, "curve": False},
+                {"x": 0.32, "y": 0.64, "curve": False},
+                {"x": 0.37, "y": 0.72, "curve": False},
+                {"x": 0.455, "y": 0.73, "curve": False},
+            ],
+            "closed": True, "color": "#23834B", "fill": "tatami",
+        },
+        {
+            "name": "ورقة يمنى", "type": "tatami",
+            "points": [
+                {"x": 0.5, "y": 0.78, "curve": False},
+                {"x": 0.59, "y": 0.7, "curve": False},
+                {"x": 0.68, "y": 0.72, "curve": False},
+                {"x": 0.62, "y": 0.8, "curve": False},
+                {"x": 0.53, "y": 0.83, "curve": False},
+            ],
+            "closed": True, "color": "#23834B", "fill": "tatami",
+        },
+    ])
+    return {
+        "summary": "تصميم وردة بخمس بتلات وساق وورقتين. استُخدم قالب هندسي احتياطي لأن نموذج الذكاء الاصطناعي لم يُرجع هندسة صالحة؛ يمكنك تعديل الأشكال والألوان داخل البرنامج.",
+        "objects": objects,
+    }
+
+
 @app.get("/")
 async def root() -> dict[str, Any]:
     return {
@@ -364,14 +440,22 @@ angle (-180 إلى 180)، satin_width (0.5 إلى 12 مم).
                         len(raw), len(repaired_raw),
                         list(repaired_payload.keys()) if isinstance(repaired_payload, dict) else [],
                     )
+                    if any(word in prompt.lower() for word in ("وردة", "زهرة", "flower", "rose")):
+                        payload = fallback_flower_design()
+                        normalized = normalize_design(payload, width_mm, height_mm)
+                        normalized["model"] = "built-in-flower-fallback"
+                        normalized["provider"] = "Khayt geometry fallback"
+                        normalized["generation_mode"] = "template_fallback"
+                        return normalized
                     raise HTTPException(
                         status_code=502,
-                        detail="لم يُنشئ النموذج الأشكال الهندسية المطلوبة. جرّب وصفاً محدداً مثل: وردة بخمس بتلات وساق وورقتين.",
+                        detail="لم يُنشئ النموذج الأشكال الهندسية المطلوبة. جرّب وصفاً أبسط أو قالباً جاهزاً.",
                     )
 
             normalized = normalize_design(payload, width_mm, height_mm)
             normalized["model"] = CF_TEXT_MODEL
             normalized["provider"] = "Cloudflare Workers AI"
+            normalized["generation_mode"] = "ai"
             return normalized
 
         response = client.chat.completions.create(
