@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import io
 import json
 import logging
 import math
@@ -10,6 +11,8 @@ from typing import Any
 import httpx
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi.responses import Response
+import pyembroidery
 from fastapi.middleware.cors import CORSMiddleware
 from openai import AuthenticationError, OpenAI, RateLimitError
 from pydantic import BaseModel, Field
@@ -112,6 +115,22 @@ class EmbroideryObject(BaseModel):
     max_stitch_length: float = Field(default=7, ge=1, le=12)
     angle: float = Field(default=0, ge=-180, le=180)
     satin_width: float = Field(default=3, ge=0.5, le=12)
+
+
+class DSTStitch(BaseModel):
+    x: float = Field(default=0, ge=0, le=1200)
+    y: float = Field(default=0, ge=0, le=1200)
+    jump: bool = False
+    command: str | None = None
+    color: str | None = Field(default=None, pattern=r"^#[0-9A-Fa-f]{6}$")
+
+
+class DSTExportRequest(BaseModel):
+    name: str = Field(default="Khayt Design", min_length=1, max_length=80)
+    width_mm: float = Field(gt=0, le=1200)
+    height_mm: float = Field(gt=0, le=1200)
+    initial_color: str = Field(default="#176447", pattern=r"^#[0-9A-Fa-f]{6}$")
+    stitches: list[DSTStitch] = Field(min_length=2, max_length=150000)
 
 
 ALLOWED_TYPES = {
@@ -353,7 +372,7 @@ stitch_length (0.5 إلى 7 مم)، max_stitch_length (1 إلى 12 مم)،
 angle (-180 إلى 180)، satin_width (0.5 إلى 12 مم).
 ارسم حدوداً هندسية معقولة ومبسطة، ولا تضع أي نقطة خارج 0..1.
 الأشكال المغلقة تحتاج 3 نقاط على الأقل، والمسارات المفتوحة نقطتين على الأقل.
-قسّم التصميم إلى كائنات منفصلة حسب الألوان والأجزاء، ووازن بين التفاصيل وسهولة التطريز.
+قسّم التصميم إلى كائنات منفصلة حسب الألوان والأجزاء، ووازن بين التفاصيل وسهولة التطريز. استخدم tatami للأشكال المغلقة العريضة. استخدم satin فقط للأعمدة الرفيعة والمسارات المفتوحة ذات محور مركزي واضح (closed=false)، مع 2 إلى 40 نقطة على محور العمود. استخدم run للخطوط الرفيعة جداً. لا ترسم عمود satin كحد مغلق.
 لا تدّعِ أن المخطط ملف DST نهائي؛ إنه مقترح هندسي سيُراجع ويحوّل إلى غرز داخل البرنامج.
 """
 
@@ -495,6 +514,71 @@ angle (-180 إلى 180)، satin_width (0.5 إلى 12 مم).
             status_code=502,
             detail="تعذر إنشاء التصميم عبر خدمة الذكاء الاصطناعي. تحقق من رصيد المفتاح وصلاحيته ثم راجع سجلات Render.",
         ) from exc
+
+
+@app.post("/api/export/dst")
+async def export_dst(request: DSTExportRequest) -> Response:
+    """Encode validated stitch coordinates as a Tajima DST embroidery file."""
+    if len(request.stitches) > 120000:
+        raise HTTPException(status_code=413, detail="عدد الغرز يتجاوز الحد الآمن للتصدير (120 ألف غرزة).")
+
+    pattern = pyembroidery.EmbPattern()
+    pattern["name"] = request.name[:16]
+    pattern += request.initial_color
+
+    stitch_count = 0
+    color_count = 0
+
+    try:
+        for item in request.stitches:
+            if item.command == "color":
+                if not item.color:
+                    raise HTTPException(status_code=422, detail="تغيير اللون يحتاج رمز لون صالحاً.")
+                pattern += item.color
+                color_count += 1
+                continue
+
+            if item.x > request.width_mm or item.y > request.height_mm:
+                raise HTTPException(status_code=422, detail="توجد غرزة خارج حدود مساحة القماش.")
+
+            x = round(item.x * 10, 3)
+            y = round(-item.y * 10, 3)
+            if item.jump:
+                pattern.add_stitch_absolute(pyembroidery.JUMP, x, y)
+            else:
+                pattern.add_stitch_absolute(pyembroidery.STITCH, x, y)
+                stitch_count += 1
+
+        if stitch_count < 2:
+            raise HTTPException(status_code=422, detail="لا توجد غرز فعلية كافية لإنشاء ملف DST.")
+        pattern.add_command(pyembroidery.END)
+
+        output = io.BytesIO()
+        pyembroidery.write_dst(
+            pattern,
+            output,
+            {"explicit_trim": True, "max_stitch": 121, "max_jump": 121},
+        )
+        content = output.getvalue()
+        if len(content) < 515 or len(content) % 3 != 2:
+            logger.error("DST encoder returned an unexpected file length: %s", len(content))
+            raise HTTPException(status_code=500, detail="تعذر التحقق من بنية ملف DST الناتج.")
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("DST export failed")
+        raise HTTPException(status_code=500, detail="حدث خطأ أثناء ترميز ملف DST. راجع سجل الخادم.") from exc
+
+    safe_name = "".join(ch for ch in request.name if ch.isalnum() or ch in " _-").strip()[:48] or "khayt-design"
+    return Response(
+        content=content,
+        media_type="application/octet-stream",
+        headers={
+            "Content-Disposition": f'attachment; filename="{safe_name}.dst"',
+            "X-Khayt-Stitch-Count": str(stitch_count),
+            "X-Khayt-Color-Changes": str(color_count),
+        },
+    )
 
 
 @app.post("/api/ai/transcribe")
