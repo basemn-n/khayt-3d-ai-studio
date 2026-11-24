@@ -198,6 +198,40 @@ def parse_model_json(raw: str) -> dict[str, Any] | None:
 
     return None
 
+def extract_model_text(result: dict[str, Any]) -> str:
+    """Extract generated text from Cloudflare's response, including nested gateway envelopes."""
+    preferred = ("response", "text", "output", "generated_text", "content", "choices", "message")
+
+    def walk(value: Any, depth: int = 0) -> str:
+        if depth > 8 or value is None:
+            return ""
+        if isinstance(value, str):
+            return value.strip()
+        if isinstance(value, list):
+            for item in value:
+                found = walk(item, depth + 1)
+                if found:
+                    return found
+            return ""
+        if isinstance(value, dict):
+            if isinstance(value.get("objects"), list) and value["objects"]:
+                return json.dumps(value, ensure_ascii=False)
+            for key in preferred:
+                if key in value:
+                    found = walk(value[key], depth + 1)
+                    if found:
+                        return found
+            # Some providers return a nested result object under an undocumented key.
+            for nested in value.values():
+                if isinstance(nested, (dict, list)):
+                    found = walk(nested, depth + 1)
+                    if found:
+                        return found
+        return ""
+
+    return walk(result)
+
+
 def normalize_design(payload: dict[str, Any], width: float, height: float) -> dict[str, Any]:
     raw_objects = payload.get("objects")
     if not isinstance(raw_objects, list) or not raw_objects:
@@ -441,7 +475,7 @@ angle (-180 إلى 180)، satin_width (0.5 إلى 12 مم).
                 "max_tokens": 6000,
                 "temperature": 0.15,
             })
-            raw = str(result.get("response") or result.get("text") or "").strip()
+            raw = extract_model_text(result)
             payload = parse_model_json(raw)
 
             def contains_objects(value: dict[str, Any] | None) -> bool:
@@ -488,7 +522,7 @@ angle (-180 إلى 180)، satin_width (0.5 إلى 12 مم).
                     "max_tokens": 4500,
                     "temperature": 0.1,
                 })
-                repaired_raw = str(repair.get("response") or repair.get("text") or "").strip()
+                repaired_raw = extract_model_text(repair)
                 repaired_payload = parse_model_json(repaired_raw)
                 if contains_objects(repaired_payload):
                     payload = repaired_payload
