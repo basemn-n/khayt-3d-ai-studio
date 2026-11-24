@@ -6,6 +6,8 @@ import logging
 import os
 from typing import Any
 
+import httpx
+
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from openai import AuthenticationError, OpenAI, RateLimitError
@@ -17,6 +19,9 @@ logger = logging.getLogger("khayt-ai")
 APP_NAME = "khayt-ai"
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4.1")
 TRANSCRIBE_MODEL = os.getenv("OPENAI_TRANSCRIBE_MODEL", "gpt-4o-mini-transcribe")
+AI_PROVIDER = os.getenv("AI_PROVIDER", "cloudflare").strip().lower()
+CF_TEXT_MODEL = os.getenv("CLOUDFLARE_TEXT_MODEL", "@cf/meta/llama-3.1-8b-instruct-fp8-fast")
+CF_AUDIO_MODEL = os.getenv("CLOUDFLARE_AUDIO_MODEL", "@cf/openai/whisper")
 MAX_IMAGE_BYTES = 12 * 1024 * 1024
 MAX_AUDIO_BYTES = 25 * 1024 * 1024
 ALLOWED_IMAGE_TYPES = {"image/png", "image/jpeg", "image/webp"}
@@ -53,6 +58,39 @@ def get_client() -> OpenAI:
             detail="مفتاح OPENAI_API_KEY غير مضبوط في إعدادات خادم Render.",
         )
     return OpenAI(api_key=key, timeout=120.0, max_retries=2)
+
+def cloudflare_credentials() -> tuple[str, str]:
+    account_id = os.getenv("CLOUDFLARE_ACCOUNT_ID", "").strip()
+    token = os.getenv("CLOUDFLARE_API_TOKEN", "").strip()
+    if not account_id or not token:
+        raise HTTPException(status_code=503, detail="أكمل إعداد Cloudflare AI بإضافة CLOUDFLARE_ACCOUNT_ID وCLOUDFLARE_API_TOKEN في Render.")
+    return account_id, token
+
+
+async def cloudflare_run(model: str, payload: dict[str, Any]) -> dict[str, Any]:
+    account_id, token = cloudflare_credentials()
+    url = f"https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/run/{model}"
+    try:
+        async with httpx.AsyncClient(timeout=150.0) as session:
+            response = await session.post(url, headers={"Authorization": f"Bearer {token}"}, json=payload)
+        if response.status_code == 429:
+            raise HTTPException(status_code=429, detail="وصلت إلى الحصة المجانية اليومية لـ Cloudflare AI. انتظر إعادة ضبط الحصة اليومية ثم أعد المحاولة.")
+        if response.status_code in (401, 403):
+            logger.warning("Cloudflare AI rejected credentials or model access.")
+            raise HTTPException(status_code=503, detail="تعذر التحقق من صلاحيات Cloudflare AI. راجع Account ID وصلاحية Workers AI في المفتاح.")
+        response.raise_for_status()
+        data = response.json()
+        if not data.get("success", True):
+            raise HTTPException(status_code=502, detail="أعادت خدمة Cloudflare AI خطأ أثناء معالجة الطلب.")
+        result = data.get("result")
+        return result if isinstance(result, dict) else {"response": result}
+    except HTTPException:
+        raise
+    except httpx.HTTPError as exc:
+        logger.warning("Cloudflare AI request failed: %s", type(exc).__name__)
+        raise HTTPException(status_code=502, detail="تعذر الاتصال بخدمة Cloudflare AI. حاول مرة أخرى.") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=502, detail="أعادت Cloudflare استجابة غير مفهومة.") from exc
 
 
 class Point(BaseModel):
@@ -179,8 +217,9 @@ async def health() -> dict[str, Any]:
     return {
         "ok": True,
         "service": APP_NAME,
-        "api_key_configured": bool(os.getenv("OPENAI_API_KEY", "").strip()),
-        "model": OPENAI_MODEL,
+        "api_key_configured": bool(os.getenv("CLOUDFLARE_API_TOKEN", "").strip()) if AI_PROVIDER == "cloudflare" else bool(os.getenv("OPENAI_API_KEY", "").strip()),
+        "provider": AI_PROVIDER,
+        "model": CF_TEXT_MODEL if AI_PROVIDER == "cloudflare" else OPENAI_MODEL,
     }
 
 
@@ -196,7 +235,7 @@ async def create_design(
     if not prompt and image is None:
         raise HTTPException(status_code=400, detail="اكتب وصف التصميم أو أرفق صورة مرجعية.")
 
-    client = get_client()
+    client = None if AI_PROVIDER == "cloudflare" else get_client()
     instructions = f"""
 أنت مهندس تصميم تطريز آلي محترف. حوّل طلب المستخدم إلى مخطط هندسي ثنائي الأبعاد
 مكوّن من أشكال ومسارات قابلة للتحويل إلى غرز في برنامج خيط 3D.
@@ -233,6 +272,26 @@ angle (-180 إلى 180)، satin_width (0.5 إلى 12 مم).
         })
 
     try:
+        if AI_PROVIDER == "cloudflare":
+            if image is not None:
+                raise HTTPException(status_code=501, detail="في الوضع المجاني الحالي، أنشئ التصميم من الوصف النصي. دعم تحليل الصور المرجعية سيضاف بعد اختبار واجهة الرؤية.")
+            result = await cloudflare_run(CF_TEXT_MODEL, {
+                "messages": [
+                    {"role": "system", "content": instructions + "\nأعد JSON صالحاً فقط دون Markdown أو شرح خارج JSON."},
+                    {"role": "user", "content": prompt or "أنشئ تصميماً زخرفياً مناسباً للتطريز."},
+                ],
+                "max_tokens": 3500,
+                "temperature": 0.25,
+            })
+            raw = str(result.get("response") or result.get("text") or "").strip()
+            if raw.startswith("```"):
+                raw = raw.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
+            payload = json.loads(raw)
+            normalized = normalize_design(payload, width_mm, height_mm)
+            normalized["model"] = CF_TEXT_MODEL
+            normalized["provider"] = "Cloudflare Workers AI"
+            return normalized
+
         response = client.chat.completions.create(
             model=OPENAI_MODEL,
             temperature=0.35,
@@ -278,6 +337,11 @@ async def transcribe_audio(file: UploadFile = File(...)) -> dict[str, Any]:
     audio = await file.read()
     if not audio or len(audio) > MAX_AUDIO_BYTES:
         raise HTTPException(status_code=413, detail="حجم التسجيل فارغ أو يتجاوز 25 ميجابايت.")
+
+    if AI_PROVIDER == "cloudflare":
+        audio_b64 = base64.b64encode(audio).decode("ascii")
+        result = await cloudflare_run(CF_AUDIO_MODEL, {"audio": audio_b64, "task": "transcribe"})
+        return {"ok": True, "text": result.get("text", "")}
 
     client = get_client()
     try:
