@@ -429,7 +429,7 @@ async def create_design(
 أبعاد القماش: {width_mm} × {height_mm} مم. نوع القماش: {fabric}.
 أخرج JSON فقط بالمفتاحين summary و objects.
 objects مصفوفة من 3 إلى 18 كائناً. كل كائن يحتوي name و type و points و closed و color.
-type يجب أن يكون واحداً من: tatami أو satin أو run أو motif أو triple أو backstitch.
+للأشكال المغلقة استخدم tatami أو satin فقط. للمسارات المفتوحة استخدم run أو triple أو backstitch فقط. لا تستخدم motif أو نوعاً عاماً مثل complex.
 كل نقطة كائن يحوي x و y بين 0 و1 و curve قيمة true أو false.
 للشكل المغلق: استخدم 9 إلى 24 نقطة على المحيط. لا تستخدم مثلثات أو خماسيات بدائية. اجعل البتلات مستديرة والأوراق طويلة ومدببة بانحناءات طبيعية.
 للمسار المفتوح: استخدم 4 إلى 10 نقاط على محور المسار.
@@ -471,7 +471,7 @@ type يجب أن يكون واحداً من: tatami أو satin أو run أو mot
                     "additionalProperties": False,
                     "properties": {
                         "name": {"type": "string"},
-                        "type": {"type": "string", "enum": ["tatami", "satin", "run", "motif", "triple", "backstitch"]},
+                        "type": {"type": "string", "enum": ["tatami", "satin", "run", "triple", "backstitch"]},
                         "points": {
                             "type": "array",
                             "minItems": 4,
@@ -531,9 +531,9 @@ type يجب أن يكون واحداً من: tatami أو satin أو run أو mot
                     if not isinstance(item, dict) or not isinstance(item.get("points"), list):
                         return False
                     points = item["points"]
-                    if item.get("closed") is True and len(points) < 9:
+                    if item.get("closed") is True and (len(points) < 9 or item.get("type") not in {"tatami", "satin"}):
                         return False
-                    if item.get("closed") is False and len(points) < 4:
+                    if item.get("closed") is False and (len(points) < 4 or item.get("type") not in {"run", "triple", "backstitch"}):
                         return False
                 return True
 
@@ -546,7 +546,7 @@ type يجب أن يكون واحداً من: tatami أو satin أو run أو mot
                             "content": (
                                 "أنت مهندس تطريز. أخرج JSON فقط بالمفتاحين summary و objects. "
                                 "أنشئ 3 إلى 12 كائناً. كل كائن يحتوي name و type و points و closed و color. "
-                                "type واحد من tatami أو satin أو run أو motif أو triple أو backstitch. "
+                                "للأشكال المغلقة استخدم tatami أو satin فقط، وللمسارات المفتوحة run أو triple أو backstitch فقط. لا تستخدم motif أو complex. "
                                 "كل نقطة تحوي x و y بين 0 و1 و curve منطقية. "
                                 "كل شكل مغلق يحتاج 9 نقاط على الأقل، وكل مسار مفتوح يحتاج 4 نقاط على الأقل. "
                                 "لا تستخدم أمثلة مختصرة أو نقاطاً أقل من الحد المطلوب."
