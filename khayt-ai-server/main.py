@@ -142,29 +142,61 @@ ALLOWED_TYPES = {
 
 
 def parse_model_json(raw: str) -> dict[str, Any] | None:
-    """Parse a JSON object even when the model wraps it in prose or Markdown."""
+    """Parse model JSON, including JSON wrapped in common provider response envelopes."""
     if not raw:
         return None
-    text = raw.strip().replace("```json", "").replace("```", "").strip()
-    decoder = json.JSONDecoder()
-    # First try the complete response, then scan for the first valid JSON object.
-    try:
-        value = json.loads(text)
-        if isinstance(value, dict):
-            return value
-    except (json.JSONDecodeError, TypeError):
-        pass
-    for index, char in enumerate(text):
-        if char != "{":
-            continue
-        try:
-            value, _end = decoder.raw_decode(text[index:])
-            if isinstance(value, dict):
-                return value
-        except json.JSONDecodeError:
-            continue
-    return None
 
+    decoder = json.JSONDecoder()
+    pending: list[str] = [raw.strip()]
+    seen: set[str] = set()
+
+    while pending:
+        text = pending.pop(0).strip()
+        if not text or text in seen:
+            continue
+        seen.add(text)
+        cleaned = text.replace("```json", "").replace("```", "").strip()
+
+        try:
+            value = json.loads(cleaned)
+            if isinstance(value, dict):
+                # Some inference gateways wrap the model's actual JSON in a string field.
+                if isinstance(value.get("objects"), list) and value["objects"]:
+                    return value
+                for key in ("response", "text", "output", "content", "generated_text"):
+                    nested = value.get(key)
+                    if isinstance(nested, str):
+                        pending.append(nested)
+                    elif isinstance(nested, dict):
+                        pending.append(json.dumps(nested, ensure_ascii=False))
+                if isinstance(value.get("choices"), list):
+                    pending.append(json.dumps(value["choices"], ensure_ascii=False))
+                # Keep a structurally valid object as a last resort.
+                if not pending:
+                    return value
+            elif isinstance(value, str):
+                pending.append(value)
+        except (json.JSONDecodeError, TypeError):
+            pass
+
+        # Scan for embedded JSON objects, including responses prefixed by model tokens.
+        for index, char in enumerate(cleaned):
+            if char != "{":
+                continue
+            try:
+                value, _end = decoder.raw_decode(cleaned[index:])
+                if isinstance(value, dict):
+                    if isinstance(value.get("objects"), list) and value["objects"]:
+                        return value
+                    for key in ("response", "text", "output", "content", "generated_text"):
+                        nested = value.get(key)
+                        if isinstance(nested, str):
+                            pending.append(nested)
+                break
+            except json.JSONDecodeError:
+                continue
+
+    return None
 
 def normalize_design(payload: dict[str, Any], width: float, height: float) -> dict[str, Any]:
     raw_objects = payload.get("objects")
