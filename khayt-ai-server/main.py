@@ -436,9 +436,9 @@ points (مصفوفة نقاط بين 0 و1 نسبةً إلى عرض وارتفا
 closed (boolean)، color (#RRGGBB)، fill، spacing (0.2 إلى 1.2)،
 stitch_length (0.5 إلى 7 مم)، max_stitch_length (1 إلى 12 مم)،
 angle (-180 إلى 180)، satin_width (0.5 إلى 12 مم).
-ارسم حدوداً هندسية معقولة ومبسطة، ولا تضع أي نقطة خارج 0..1.
-الأشكال المغلقة تحتاج 3 نقاط على الأقل، والمسارات المفتوحة نقطتين على الأقل.
-قسّم التصميم إلى كائنات منفصلة حسب الألوان والأجزاء، ووازن بين التفاصيل وسهولة التطريز. استخدم tatami للأشكال المغلقة العريضة. استخدم satin فقط للأعمدة الرفيعة والمسارات المفتوحة ذات محور مركزي واضح (closed=false)، مع 2 إلى 40 نقطة على محور العمود. استخدم run للخطوط الرفيعة جداً. لا ترسم عمود satin كحد مغلق.
+ارسم حدوداً هندسية دقيقة وغنية بالتفاصيل، ولا تضع أي نقطة خارج 0..1.
+للأشكال المغلقة المملوءة مثل البتلات والأوراق والزهور: استخدم 10 إلى 24 نقطة موزعة على المحيط لتكوين منحنيات طبيعية، ولا تختزلها إلى مثلثات أو خماسيات أو مضلعات قليلة الزوايا. اجعل كل بتلة ذات شكل بيضاوي/قطري مستدير مع طرف واتصال واضح بمركز الزهرة، واجعل الأوراق مدببة الطرفين ومنحنية الجانبين. للأشكال الصغيرة مثل مركز الزهرة استخدم 8 إلى 16 نقطة. للمسارات المفتوحة مثل السيقان استخدم 4 إلى 10 نقاط على مسار انسيابي. تجنب تكرار نفس الشكل أو نفس إحداثيات الكائنات.
+قسّم التصميم إلى كائنات منفصلة حسب الألوان والأجزاء، ووازن بين التفاصيل وسهولة التطريز. لا تعتبر الشكل صالحاً إذا كان حدّه مجرد مضلع خماسي بدائي. استخدم tatami للأشكال المغلقة العريضة. استخدم satin فقط للأعمدة الرفيعة والمسارات المفتوحة ذات محور مركزي واضح (closed=false)، مع 2 إلى 40 نقطة على محور العمود. استخدم run للخطوط الرفيعة جداً. لا ترسم عمود satin كحد مغلق.
 مهم جداً: اكتب بيانات الأشكال داخل objects مباشرة، ولا تكتب وصفاً أو اعتذاراً بدلاً من JSON. استخدم هذا المثال كقالب بنية حرفي، وغيّر الأسماء والنقاط والألوان لتناسب طلب المستخدم:
 {{"summary":"تصميم تطريز بسيط","objects":[{{"name":"شكل أحمر","type":"tatami","points":[{{"x":0.40,"y":0.30,"curve":false}},{{"x":0.60,"y":0.30,"curve":false}},{{"x":0.60,"y":0.50,"curve":false}},{{"x":0.40,"y":0.50,"curve":false}}],"closed":true,"color":"#D92D45","fill":"tatami","spacing":0.45,"stitch_length":3.2,"max_stitch_length":7,"angle":45,"satin_width":3}},{{"name":"خط أخضر","type":"run","points":[{{"x":0.50,"y":0.55,"curve":false}},{{"x":0.50,"y":0.80,"curve":false}}],"closed":false,"color":"#23834B","fill":"run"}}]}}
 لا تستخدم كلمة fusion كنوع أو خوارزمية. لا تضع علامات Markdown أو نصاً خارج JSON.
@@ -528,12 +528,19 @@ angle (-180 إلى 180)، satin_width (0.5 إلى 12 مم).
                 if not isinstance(value, dict):
                     return False
                 candidates = value.get("objects")
-                if not isinstance(candidates, list) or not candidates:
-                    candidates = value.get("elements") or value.get("shapes") or value.get("paths")
-                return isinstance(candidates, list) and any(
-                    isinstance(item, dict) and isinstance(item.get("points"), list) and len(item["points"]) >= 2
-                    for item in candidates
-                )
+                if not isinstance(candidates, list) or len(candidates) < 3:
+                    return False
+                # Quality gate: closed filled shapes need enough perimeter points
+                # to avoid accepting crude triangles/pentagons as finished artwork.
+                for item in candidates:
+                    if not isinstance(item, dict) or not isinstance(item.get("points"), list):
+                        return False
+                    points = item["points"]
+                    if item.get("closed") is True and len(points) < 9:
+                        return False
+                    if item.get("closed") is False and len(points) < 4:
+                        return False
+                return True
 
             # Retry if the model returned prose, malformed JSON, or JSON without geometry.
             if not contains_objects(payload):
@@ -546,7 +553,7 @@ angle (-180 إلى 180)، satin_width (0.5 إلى 12 مم).
                                 "يجب أن يحتوي الجذر على summary نص عربي و objects مصفوفة غير فارغة. "
                                 "أنشئ من 3 إلى 7 أشكال فعلية. كل عنصر في objects يجب أن يحتوي: "
                                 "name نص، type من tatami أو satin أو run أو motif، "
-                                "points مصفوفة من 3 إلى 12 نقطة، وكل نقطة {x رقم بين 0 و1, y رقم بين 0 و1, curve false}، "
+                                "points مصفوفة من 10 إلى 24 نقطة للأشكال المغلقة، ومن 4 إلى 10 نقاط للمسارات المفتوحة، وكل نقطة {x رقم بين 0 و1, y رقم بين 0 و1, curve قيمة منطقية}، "
                                 "closed قيمة true أو false، color بصيغة #RRGGBB. "
                                 "لا تستخدم مفاتيح بديلة مثل elements أو shapes. لا تترك objects فارغة."
                             ),
@@ -555,8 +562,8 @@ angle (-180 إلى 180)، satin_width (0.5 إلى 12 مم).
                             "role": "user",
                             "content": (
                                 "أنشئ الآن JSON كاملاً وصالحاً. يجب أن يحتوي الجذر على summary و objects. "
-                                + "ضع 3 إلى 8 كائنات، وكل كائن يحتوي name و type و points و closed و color. "
-                                + "كل نقطة كائن به x و y رقمان بين 0 و1 و curve قيمة false. "
+                                + "ضع 3 إلى 12 كائناً، وكل شكل مغلق يحتوي 10 نقاط على الأقل، وكل مسار مفتوح يحتوي 4 نقاط على الأقل، مع name و type و points و closed و color. "
+                                + "كل نقطة كائن به x و y رقمان بين 0 و1 و curve قيمة منطقية. لا تستخدم مضلعات خماسية بدائية؛ ارسم حدوداً منحنية مفصلة. "
                                 + "مثال مختصر: {\"summary\":\"تصميم\",\"objects\":[{\"name\":\"بتلة\",\"type\":\"tatami\",\"points\":[{\"x\":0.4,\"y\":0.3,\"curve\":false},{\"x\":0.6,\"y\":0.3,\"curve\":false},{\"x\":0.5,\"y\":0.5,\"curve\":false}],\"closed\":true,\"color\":\"#D92D45\"}]}. "
                                 + "طلب المستخدم: " + prompt
                                 + "\nالأبعاد: " + str(width_mm) + " × " + str(height_mm) + " مم. القماش: " + fabric
