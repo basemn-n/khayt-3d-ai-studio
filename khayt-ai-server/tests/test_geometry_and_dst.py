@@ -105,6 +105,17 @@ class GeometryValidationTests(unittest.TestCase):
             main.normalize_design(payload, 100, 100)
 
 
+    def test_accepts_small_but_stitchable_closed_leaf(self):
+        payload = {
+            "summary": "ورقة صغيرة",
+            "objects": [
+                {"name": "ورقة صغيرة", "type": "tatami", "points": circle(.5, .5, .008, .008), "closed": True, "color": "#23834b"},
+                *valid_open_objects(),
+            ],
+        }
+        result = main.normalize_design(payload, 300, 300)
+        self.assertEqual(len(result["objects"]), 3)
+
 class DSTExportTests(unittest.TestCase):
     def test_exports_valid_dst_header_and_records(self):
         request = main.DSTExportRequest(
