@@ -39,7 +39,16 @@ window.inspectKhaytProject=function(input){
     return (i+1)+'. '+((o&&o.name)||(o&&o.tool)||'شكل بلا اسم')+' | '+((o&&o.tool)||'أداة غير محددة')+' | '+pts.length+' نقطة | '+((o&&o.color)||'بلا لون')+' | '+(valid?'إحداثيات سليمة':'إحداثيات غير صالحة');
    }).join(String.fromCharCode(10));
    output.value='الملف: '+file.name+String.fromCharCode(10)+'المشروع: '+(data.name||'غير محدد')+String.fromCharCode(10)+'الإصدار: '+(data.version??'غير محدد')+String.fromCharCode(10)+'عدد العناصر: '+objects.length+String.fromCharCode(10)+'عدد الألوان: '+colors.length+String.fromCharCode(10)+'الألوان: '+colors.join('، ')+String.fromCharCode(10,10)+'تفاصيل العناصر:'+String.fromCharCode(10)+(details||'لا توجد عناصر في objects');
-   status.textContent='اكتمل الفحص. انسخ التقرير من المربع أدناه وأرسله في المحادثة.';
+   if(data.version!==3||!objects.length||objects.some(o=>!o||!Array.isArray(o.points)||o.points.length<2||o.points.some(p=>!p||!Number.isFinite(Number(p.x))||!Number.isFinite(Number(p.y))))){
+    status.textContent='تم فحص الملف، لكن لم يتم تحميله: بنية المشروع أو إحداثيات بعض العناصر غير مكتملة.';
+    output.focus();output.select();return;
+   }
+   $('projectName').value=data.name||'مشروع مستعاد';
+   $('fabricW').value=data.fabric?.w||300;$('fabricH').value=data.fabric?.h||300;
+   $('fabric').value=data.fabric?.type||'كريب';$('fabricColor').value=data.fabric?.color||'#f4f0e8';
+   S.fabric=$('fabricColor').value;S.objects=objects;S.selected=-1;history.undo=[];history.redo=[];
+   recalc();setStep(7);
+   status.textContent='تم فحص الملف وتحميل '+objects.length+' عناصر إلى مساحة التصميم. راجع الوردة ثم احفظ نسخة جديدة.';
    output.focus();output.select();
   }catch(err){status.textContent='هذا الملف ليس JSON صالحاً: '+err.message;output.value='تعذر قراءة محتوى الملف. اختر ملف المشروع JSON الصحيح.'}
  };
