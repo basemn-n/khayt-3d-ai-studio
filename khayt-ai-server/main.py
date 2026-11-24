@@ -21,7 +21,7 @@ APP_NAME = "khayt-ai"
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4.1")
 TRANSCRIBE_MODEL = os.getenv("OPENAI_TRANSCRIBE_MODEL", "gpt-4o-mini-transcribe")
 AI_PROVIDER = os.getenv("AI_PROVIDER", "cloudflare").strip().lower()
-CF_TEXT_MODEL = os.getenv("CLOUDFLARE_TEXT_MODEL", "@cf/meta/llama-3.1-8b-instruct-fp8-fast")
+CF_TEXT_MODEL = os.getenv("CLOUDFLARE_TEXT_MODEL", "@cf/meta/llama-3.3-70b-instruct-fp8-fast")
 CF_AUDIO_MODEL = os.getenv("CLOUDFLARE_AUDIO_MODEL", "@cf/openai/whisper")
 MAX_IMAGE_BYTES = 12 * 1024 * 1024
 MAX_AUDIO_BYTES = 25 * 1024 * 1024
@@ -383,8 +383,9 @@ angle (-180 إلى 180)، satin_width (0.5 إلى 12 مم).
                     {"role": "system", "content": instructions + "\nأعد JSON صالحاً فقط دون Markdown أو شرح خارج JSON."},
                     {"role": "user", "content": prompt or "أنشئ تصميماً زخرفياً مناسباً للتطريز."},
                 ],
-                "max_tokens": 3500,
-                "temperature": 0.25,
+                "response_format": {"type": "json_object"},
+                "max_tokens": 4500,
+                "temperature": 0.15,
             })
             raw = str(result.get("response") or result.get("text") or "").strip()
             payload = parse_model_json(raw)
@@ -427,8 +428,9 @@ angle (-180 إلى 180)، satin_width (0.5 إلى 12 مم).
                             ),
                         },
                     ],
-                    "max_tokens": 3500,
-                    "temperature": 0.2,
+                    "response_format": {"type": "json_object"},
+                    "max_tokens": 4500,
+                    "temperature": 0.1,
                 })
                 repaired_raw = str(repair.get("response") or repair.get("text") or "").strip()
                 repaired_payload = parse_model_json(repaired_raw)
