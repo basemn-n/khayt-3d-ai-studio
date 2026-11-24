@@ -510,8 +510,8 @@ objects مصفوفة من 3 إلى 18 كائناً. كل كائن يحتوي nam
                         "type": {"type": "string", "enum": ["tatami", "satin", "run", "triple", "backstitch"]},
                         "points": {
                             "type": "array",
-                            "minItems": 4,
-                            "maxItems": 40,
+                            "minItems": 9,
+                            "maxItems": 24,
                             "items": {
                                 "type": "object",
                                 "additionalProperties": False,
