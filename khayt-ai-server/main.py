@@ -8,7 +8,7 @@ from typing import Any
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from openai import OpenAI
+from openai import AuthenticationError, OpenAI, RateLimitError
 from pydantic import BaseModel, Field
 
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
@@ -247,6 +247,18 @@ angle (-180 إلى 180)، satin_width (0.5 إلى 12 مم).
         return normalize_design(payload, width_mm, height_mm)
     except HTTPException:
         raise
+    except AuthenticationError as exc:
+        logger.warning("OpenAI rejected the configured API key (authentication failed).")
+        raise HTTPException(
+            status_code=503,
+            detail="مفتاح OpenAI المحفوظ في Render غير صالح أو تم إلغاؤه. أنشئ مفتاحاً جديداً واحفظه في OPENAI_API_KEY ثم أعد النشر.",
+        ) from exc
+    except RateLimitError as exc:
+        logger.warning("OpenAI rate limit or quota error during design generation.")
+        raise HTTPException(
+            status_code=429,
+            detail="رفضت OpenAI الطلب بسبب حد الاستخدام أو عدم توفر الرصيد. تحقق من Usage وBilling في حساب OpenAI.",
+        ) from exc
     except json.JSONDecodeError as exc:
         logger.exception("AI returned invalid JSON")
         raise HTTPException(status_code=502, detail="أعاد نموذج الذكاء الاصطناعي نتيجة غير مفهومة. أعد المحاولة.") from exc
