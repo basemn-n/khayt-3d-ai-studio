@@ -462,6 +462,52 @@ angle (-180 إلى 180)، satin_width (0.5 إلى 12 مم).
             "image_url": {"url": f"data:{content_type};base64,{encoded}", "detail": "high"},
         })
 
+    geometry_schema = {
+        "type": "object",
+        "additionalProperties": False,
+        "properties": {
+            "summary": {"type": "string"},
+            "objects": {
+                "type": "array",
+                "minItems": 3,
+                "maxItems": 18,
+                "items": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "properties": {
+                        "name": {"type": "string"},
+                        "type": {"type": "string", "enum": ["tatami", "satin", "run", "motif", "triple", "backstitch"]},
+                        "points": {
+                            "type": "array",
+                            "minItems": 3,
+                            "maxItems": 40,
+                            "items": {
+                                "type": "object",
+                                "additionalProperties": False,
+                                "properties": {
+                                    "x": {"type": "number", "minimum": 0, "maximum": 1},
+                                    "y": {"type": "number", "minimum": 0, "maximum": 1},
+                                    "curve": {"type": "boolean"}
+                                },
+                                "required": ["x", "y", "curve"]
+                            }
+                        },
+                        "closed": {"type": "boolean"},
+                        "color": {"type": "string", "pattern": "^#[0-9A-Fa-f]{6}$"},
+                        "fill": {"type": "string"},
+                        "spacing": {"type": "number"},
+                        "stitch_length": {"type": "number"},
+                        "max_stitch_length": {"type": "number"},
+                        "angle": {"type": "number"},
+                        "satin_width": {"type": "number"}
+                    },
+                    "required": ["name", "type", "points", "closed", "color"]
+                }
+            }
+        },
+        "required": ["summary", "objects"]
+    }
+
     try:
         if AI_PROVIDER == "cloudflare":
             if image is not None:
@@ -471,7 +517,7 @@ angle (-180 إلى 180)، satin_width (0.5 إلى 12 مم).
                     {"role": "system", "content": instructions + "\nأعد JSON صالحاً فقط دون Markdown أو شرح خارج JSON."},
                     {"role": "user", "content": prompt or "أنشئ تصميماً زخرفياً مناسباً للتطريز."},
                 ],
-                "response_format": {"type": "json_object"},
+                "response_format": {"type": "json_schema", "json_schema": geometry_schema},
                 "max_tokens": 6000,
                 "temperature": 0.15,
             })
@@ -518,7 +564,7 @@ angle (-180 إلى 180)، satin_width (0.5 إلى 12 مم).
                             ),
                         },
                     ],
-                    "response_format": {"type": "json_object"},
+                    "response_format": {"type": "json_schema", "json_schema": geometry_schema},
                     "max_tokens": 4500,
                     "temperature": 0.1,
                 })
@@ -532,13 +578,7 @@ angle (-180 إلى 180)، satin_width (0.5 إلى 12 مم).
                         len(raw), len(repaired_raw),
                         list(repaired_payload.keys()) if isinstance(repaired_payload, dict) else [],
                     )
-                    if any(word in prompt.lower() for word in ("وردة", "زهرة", "flower", "rose")):
-                        payload = fallback_flower_design()
-                        normalized = normalize_design(payload, width_mm, height_mm)
-                        normalized["model"] = "built-in-flower-fallback"
-                        normalized["provider"] = "Khayt geometry fallback"
-                        normalized["generation_mode"] = "template_fallback"
-                        return normalized
+                    # Never present a hand-built template as an AI-generated result.
                     raise HTTPException(
                         status_code=502,
                         detail="لم يُنشئ النموذج الأشكال الهندسية المطلوبة. جرّب وصفاً أبسط أو قالباً جاهزاً.",
