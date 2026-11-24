@@ -294,7 +294,7 @@ def normalize_design(payload: dict[str, Any], width: float, height: float) -> di
             raise HTTPException(status_code=502, detail=f"نقاط الكائن {index} مكررة ولا تصنع هندسة كافية.")
         if closed:
             area = abs(sum(clean_points[i]["x"] * clean_points[(i + 1) % len(clean_points)]["y"] - clean_points[(i + 1) % len(clean_points)]["x"] * clean_points[i]["y"] for i in range(len(clean_points))) / 2)
-            if area < 0.0005:
+            if area < 0.00005:
                 raise HTTPException(status_code=502, detail=f"مساحة الكائن {index} صغيرة جداً أو نقاطه على خط واحد.")
             if polygon_has_self_intersection(clean_points):
                 raise HTTPException(status_code=502, detail=f"حدود الكائن {index} تتقاطع مع نفسها؛ لا يمكن تحويلها بأمان إلى غرز.")
@@ -708,7 +708,7 @@ objects مصفوفة من 3 إلى 18 كائناً. كل كائن يحتوي nam
                     seen_geometry.add(fingerprint)
                     if closed:
                         area = abs(sum(float(points[i]["x"]) * float(points[(i + 1) % len(points)]["y"]) - float(points[(i + 1) % len(points)]["x"]) * float(points[i]["y"]) for i in range(len(points))) / 2)
-                        if area < 0.0005:
+                        if area < 0.00005:
                             return f"العنصر {index}: مساحة الشكل صغيرة جداً."
                         if polygon_has_self_intersection(points):
                             return f"العنصر {index}: حدود الشكل تتقاطع مع نفسها."
