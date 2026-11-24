@@ -348,6 +348,104 @@ def normalize_design(payload: dict[str, Any], width: float, height: float) -> di
     }
 
 
+def _resample_geometry(points: list[dict[str, Any]], count: int, closed: bool) -> list[dict[str, Any]]:
+    """Evenly resample a polyline so embroidery geometry has stable point density."""
+    clean: list[dict[str, Any]] = []
+    for point in points:
+        try:
+            x, y = float(point["x"]), float(point["y"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        if not math.isfinite(x) or not math.isfinite(y):
+            continue
+        if not 0 <= x <= 1 or not 0 <= y <= 1:
+            continue
+        if not clean or math.hypot(x - clean[-1]["x"], y - clean[-1]["y"]) > 1e-5:
+            clean.append({"x": x, "y": y, "curve": bool(point.get("curve", False))})
+    if closed and len(clean) > 2 and math.hypot(clean[0]["x"] - clean[-1]["x"], clean[0]["y"] - clean[-1]["y"]) < 1e-5:
+        clean.pop()
+    if len(clean) < (3 if closed else 2):
+        return []
+    segments = []
+    total = 0.0
+    limit = len(clean) if closed else len(clean) - 1
+    for index in range(limit):
+        a, b = clean[index], clean[(index + 1) % len(clean)]
+        length = math.hypot(b["x"] - a["x"], b["y"] - a["y"])
+        segments.append((a, b, total, length))
+        total += length
+    if total < 1e-5:
+        return []
+    result = []
+    for i in range(count):
+        distance = total * (i / count if closed else i / max(1, count - 1))
+        chosen = segments[-1]
+        for segment in segments:
+            if distance <= segment[2] + segment[3] or segment is segments[-1]:
+                chosen = segment
+                break
+        a, b, start, length = chosen
+        ratio = 0.0 if length <= 1e-9 else max(0.0, min(1.0, (distance - start) / length))
+        result.append({
+            "x": round(a["x"] + (b["x"] - a["x"]) * ratio, 6),
+            "y": round(a["y"] + (b["y"] - a["y"]) * ratio, 6),
+            "curve": bool(a.get("curve", False) or b.get("curve", False)),
+        })
+    return result
+
+
+def repair_geometry_payload(payload: dict[str, Any] | None) -> dict[str, Any] | None:
+    """Repair common LLM geometry formatting defects without inventing new objects."""
+    if not isinstance(payload, dict) or not isinstance(payload.get("objects"), list):
+        return payload
+    repaired: list[dict[str, Any]] = []
+    fingerprints: set[tuple[tuple[float, float], ...]] = set()
+    for raw in payload["objects"]:
+        if not isinstance(raw, dict) or not isinstance(raw.get("points"), list):
+            continue
+        closed_value = raw.get("closed")
+        closed = closed_value if isinstance(closed_value, bool) else raw.get("type") == "tatami"
+        points = raw["points"]
+        valid_points = []
+        for point in points:
+            if not isinstance(point, dict):
+                continue
+            try:
+                x, y = float(point["x"]), float(point["y"])
+            except (KeyError, TypeError, ValueError):
+                continue
+            if math.isfinite(x) and math.isfinite(y) and 0 <= x <= 1 and 0 <= y <= 1:
+                valid_points.append({"x": x, "y": y, "curve": bool(point.get("curve", False))})
+        if closed:
+            # LLMs occasionally return polygon vertices out of perimeter order.
+            # Angular ordering converts that point cloud into a simple outline.
+            if len(valid_points) >= 3:
+                cx = sum(p["x"] for p in valid_points) / len(valid_points)
+                cy = sum(p["y"] for p in valid_points) / len(valid_points)
+                valid_points.sort(key=lambda p: math.atan2(p["y"] - cy, p["x"] - cx))
+            kind = "tatami"
+            valid_points = _resample_geometry(valid_points, 16, True)
+        else:
+            kind = raw.get("type") if raw.get("type") in {"satin", "run", "triple", "backstitch"} else "run"
+            valid_points = _resample_geometry(valid_points, max(4, min(10, len(valid_points))), False)
+        if not valid_points:
+            continue
+        fingerprint = tuple(sorted((round(p["x"], 4), round(p["y"], 4)) for p in valid_points))
+        if fingerprint in fingerprints:
+            continue
+        fingerprints.add(fingerprint)
+        item = dict(raw)
+        item.update({
+            "type": kind,
+            "closed": closed,
+            "points": valid_points,
+        })
+        repaired.append(item)
+    result = dict(payload)
+    result["objects"] = repaired
+    return result
+
+
 def fallback_flower_design() -> dict[str, Any]:
     """Deterministic, editable flower geometry used only when the AI fails."""
     def ellipse(cx: float, cy: float, rx: float, ry: float, count: int = 20, rotation: float = 0) -> list[dict[str, Any]]:
@@ -574,7 +672,7 @@ objects مصفوفة من 3 إلى 18 كائناً. كل كائن يحتوي nam
                 "temperature": 0.15,
             })
             raw = extract_model_text(result)
-            payload = parse_model_json(raw)
+            payload = repair_geometry_payload(parse_model_json(raw))
 
             def geometry_problem(value: dict[str, Any] | None) -> str | None:
                 if not isinstance(value, dict):
@@ -659,7 +757,7 @@ objects مصفوفة من 3 إلى 18 كائناً. كل كائن يحتوي nam
                     "temperature": 0.1,
                 })
                 repaired_raw = extract_model_text(repair)
-                repaired_payload = parse_model_json(repaired_raw)
+                repaired_payload = repair_geometry_payload(parse_model_json(repaired_raw))
                 if contains_objects(repaired_payload):
                     payload = repaired_payload
                 else:
