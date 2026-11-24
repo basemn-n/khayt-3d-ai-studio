@@ -230,12 +230,31 @@ def extract_model_text(result: dict[str, Any]) -> str:
     return walk(result)
 
 
+def polygon_has_self_intersection(points: list[dict[str, Any]]) -> bool:
+    def orient(a: dict[str, Any], b: dict[str, Any], c: dict[str, Any]) -> float:
+        return (b["x"] - a["x"]) * (c["y"] - a["y"]) - (b["y"] - a["y"]) * (c["x"] - a["x"])
+
+    count = len(points)
+    for i in range(count):
+        a, b = points[i], points[(i + 1) % count]
+        for j in range(i + 1, count):
+            if j == i or j == (i + 1) % count or (j + 1) % count == i:
+                continue
+            c, d = points[j], points[(j + 1) % count]
+            o1, o2 = orient(a, b, c), orient(a, b, d)
+            o3, o4 = orient(c, d, a), orient(c, d, b)
+            if o1 * o2 < -1e-10 and o3 * o4 < -1e-10:
+                return True
+    return False
+
+
 def normalize_design(payload: dict[str, Any], width: float, height: float) -> dict[str, Any]:
     raw_objects = payload.get("objects")
     if not isinstance(raw_objects, list) or not 3 <= len(raw_objects) <= 18:
         raise HTTPException(status_code=502, detail="يجب أن يحتوي التصميم على 3 إلى 18 كائناً هندسياً صالحاً.")
 
     objects: list[dict[str, Any]] = []
+    geometry_fingerprints: set[tuple[tuple[float, float], ...]] = set()
     for index, raw in enumerate(raw_objects, start=1):
         if not isinstance(raw, dict):
             raise HTTPException(status_code=502, detail=f"الكائن {index} ليس بنية هندسية صحيحة.")
@@ -277,6 +296,12 @@ def normalize_design(payload: dict[str, Any], width: float, height: float) -> di
             area = abs(sum(clean_points[i]["x"] * clean_points[(i + 1) % len(clean_points)]["y"] - clean_points[(i + 1) % len(clean_points)]["x"] * clean_points[i]["y"] for i in range(len(clean_points))) / 2)
             if area < 0.0005:
                 raise HTTPException(status_code=502, detail=f"مساحة الكائن {index} صغيرة جداً أو نقاطه على خط واحد.")
+            if polygon_has_self_intersection(clean_points):
+                raise HTTPException(status_code=502, detail=f"حدود الكائن {index} تتقاطع مع نفسها؛ لا يمكن تحويلها بأمان إلى غرز.")
+        fingerprint = tuple(sorted((round(p["x"], 4), round(p["y"], 4)) for p in clean_points))
+        if fingerprint in geometry_fingerprints:
+            raise HTTPException(status_code=502, detail=f"الكائن {index} يكرر هندسة كائن آخر دون اختلاف فعلي.")
+        geometry_fingerprints.add(fingerprint)
 
         color = str(raw.get("color", ""))
         if not (len(color) == 7 and color.startswith("#")):
