@@ -26,7 +26,6 @@ TRANSCRIBE_MODEL = os.getenv("OPENAI_TRANSCRIBE_MODEL", "gpt-4o-mini-transcribe"
 AI_PROVIDER = os.getenv("AI_PROVIDER", "cloudflare").strip().lower()
 CF_TEXT_MODEL = os.getenv("CLOUDFLARE_TEXT_MODEL", "@cf/meta/llama-3.3-70b-instruct-fp8-fast")
 CF_VISION_MODEL = os.getenv("CLOUDFLARE_VISION_MODEL", "@cf/meta/llama-3.2-11b-vision-instruct")
-CF_VISION_LICENSE_ACCEPTED = False
 CF_AUDIO_MODEL = os.getenv("CLOUDFLARE_AUDIO_MODEL", "@cf/openai/whisper")
 MAX_IMAGE_BYTES = 12 * 1024 * 1024
 MAX_AUDIO_BYTES = 25 * 1024 * 1024
@@ -519,11 +518,8 @@ objects مصفوفة من 3 إلى 18 كائناً. كل كائن يحتوي nam
         if AI_PROVIDER == "cloudflare":
             generation_prompt = prompt or "أنشئ تصميماً زخرفياً مناسباً للتطريز."
             if image_data_url:
-                global CF_VISION_LICENSE_ACCEPTED
-                if not CF_VISION_LICENSE_ACCEPTED:
-                    await cloudflare_run(CF_VISION_MODEL, {"prompt": "agree"})
-                    CF_VISION_LICENSE_ACCEPTED = True
-                vision_result = await cloudflare_run(CF_VISION_MODEL, {
+                try:
+                    vision_result = await cloudflare_run(CF_VISION_MODEL, {
                     "messages": [
                         {"role": "system", "content": "أنت محلل صور تطريز. صف العناصر المرئية والألوان والأجزاء والعلاقات المكانية والحدود بوضوح. لا تخترع عناصر غير موجودة ولا تُخرج إحداثيات."},
                         {"role": "user", "content": [
@@ -533,7 +529,11 @@ objects مصفوفة من 3 إلى 18 كائناً. كل كائن يحتوي nam
                     ],
                     "max_tokens": 1200,
                     "temperature": 0.1,
-                })
+                    })
+                except HTTPException as exc:
+                    if exc.status_code in {403, 503}:
+                        raise HTTPException(status_code=503, detail="تعذر استخدام نموذج تحليل الصور في Cloudflare. تحقق من صلاحية Workers AI، ومن تفعيل نموذج Llama Vision وقبول ترخيص Meta له لأول مرة من حساب Cloudflare.") from exc
+                    raise
                 image_description = extract_model_text(vision_result)
                 if not image_description:
                     raise HTTPException(status_code=502, detail="لم يتمكن نموذج الرؤية من تحليل الصورة المرجعية.")
