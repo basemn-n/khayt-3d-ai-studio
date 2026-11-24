@@ -74,6 +74,26 @@ class GeometryValidationTests(unittest.TestCase):
         with self.assertRaises(main.HTTPException):
             main.normalize_design(payload, 100, 100)
 
+    def test_rejects_duplicate_shapes(self):
+        repeated = circle(.5, .5, .2, .2)
+        payload = {"objects": [
+            {"name": "شكل أول", "type": "tatami", "points": repeated, "closed": True, "color": "#123456"},
+            {"name": "شكل مكرر", "type": "tatami", "points": repeated, "closed": True, "color": "#654321"},
+            *valid_open_objects(),
+        ]}
+        with self.assertRaises(main.HTTPException):
+            main.normalize_design(payload, 100, 100)
+
+    def test_rejects_self_intersecting_polygon(self):
+        ring = circle(.5, .5, .2, .2, 9)
+        crossed = [ring[i] for i in [0, 3, 6, 1, 4, 7, 2, 5, 8]]
+        payload = {"objects": [
+            {"name": "نجمة متقاطعة", "type": "tatami", "points": crossed, "closed": True, "color": "#123456"},
+            *valid_open_objects(),
+        ]}
+        with self.assertRaises(main.HTTPException):
+            main.normalize_design(payload, 100, 100)
+
     def test_rejects_coordinates_outside_normalized_canvas(self):
         points = circle(.5, .5, .2, .2)
         points[0]["x"] = 1.2
