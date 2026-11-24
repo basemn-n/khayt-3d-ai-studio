@@ -582,16 +582,30 @@ objects مصفوفة من 3 إلى 18 كائناً. كل كائن يحتوي nam
                 candidates = value.get("objects")
                 if not isinstance(candidates, list) or len(candidates) < 3:
                     return False
-                # Quality gate: closed filled shapes need enough perimeter points
-                # to avoid accepting crude triangles/pentagons as finished artwork.
+                # Reject invalid stitch/geometry combinations before normalization.
+                seen_geometry: set[tuple[tuple[float, float], ...]] = set()
                 for item in candidates:
                     if not isinstance(item, dict) or not isinstance(item.get("points"), list):
                         return False
                     points = item["points"]
-                    if item.get("closed") is True and (len(points) < 9 or item.get("type") != "tatami"):
+                    closed = item.get("closed") is True
+                    if closed and (len(points) < 9 or item.get("type") != "tatami"):
                         return False
-                    if item.get("closed") is False and (len(points) < 4 or item.get("type") not in {"satin", "run", "triple", "backstitch"}):
+                    if not closed and (len(points) < 4 or item.get("type") not in {"satin", "run", "triple", "backstitch"}):
                         return False
+                    if not all(isinstance(p, dict) and isinstance(p.get("x"), (int, float)) and isinstance(p.get("y"), (int, float)) for p in points):
+                        return False
+                    unique = {(round(float(p["x"]), 4), round(float(p["y"]), 4)) for p in points}
+                    if len(unique) < (6 if closed else 4):
+                        return False
+                    fingerprint = tuple(sorted(unique))
+                    if fingerprint in seen_geometry:
+                        return False
+                    seen_geometry.add(fingerprint)
+                    if closed:
+                        area = abs(sum(float(points[i]["x"]) * float(points[(i + 1) % len(points)]["y"]) - float(points[(i + 1) % len(points)]["x"]) * float(points[i]["y"]) for i in range(len(points))) / 2)
+                        if area < 0.0005 or polygon_has_self_intersection(points):
+                            return False
                 return True
 
             # Retry once with a shorter, internally consistent geometry contract.
