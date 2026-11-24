@@ -90,7 +90,6 @@ function addObject(pts,tool,closed,curved){if(tool==='inputA'&&pts.length<4){S.p
 
 function createSamaiLogo(){
  const oldCount=S.objects.length;
- if(oldCount&&!confirm('سيُضاف الشعار إلى التصميم الحالي. هل تريد المتابعة؟'))return;
  remember();
  // Give the logo a guaranteed visible 300 × 300 mm working area.
  $('fabricW').value='300';$('fabricH').value='300';
@@ -130,22 +129,25 @@ function createSamaiLogo(){
  add('الزخرفة السفلية', [{x:112,y:169},{x:128,y:177},{x:150,y:180},{x:172,y:177},{x:188,y:169}],gold,'satinWide',false,{lineW:1.4,len:2.5});
  add('امتداد زخرفي يسار', [{x:105,y:174},{x:94,y:181},{x:82,y:179}],gold,'satinWide',false,{lineW:1.2,len:2.5});
  add('امتداد زخرفي يمين', [{x:195,y:174},{x:206,y:181},{x:218,y:179}],gold,'satinWide',false,{lineW:1.2,len:2.5});
- S.selected=S.objects.length-1;
+ S.selected=oldCount;
+ S.view='design';
  $('projectName').value='شعار السامعي للتطريز';
  try{
   recalc();
-  setStep(7);
+  setStep(2);
   draw();
   renderObjectList();
   persistDraft();
   $('status').textContent='تم إنشاء شعار السامعي — '+(S.objects.length-oldCount)+' عناصر جديدة';
-  toast('ظهر شعار السامعي في مساحة العمل والطبقات. يمكنك تحديد أي عنصر وتعديله.');
+  $('canvasHint').textContent='تمت إضافة الشعار. اختر أي طبقة لتعديلها.';
+  toast('تم إنشاء الشعار وإظهاره على القماش.');
  }catch(err){
   console.error('Samai logo creation failed:',err);
   S.objects.splice(oldCount);
   S.selected=-1;
   recalc();
-  toast('تعذر إنشاء الشعار: '+(err?.message||'خطأ غير معروف'));
+  $('status').textContent='فشل إنشاء الشعار: '+(err?.message||'خطأ غير معروف');
+  toast('فشل إنشاء الشعار: '+(err?.message||'خطأ غير معروف'));
  }
 }
 $('samaiLogoBtn').onclick=()=>{try{createSamaiLogo()}catch(err){console.error(err);toast('حدث خطأ أثناء إنشاء الشعار: '+(err?.message||err))}};
