@@ -510,8 +510,8 @@ objects مصفوفة من 3 إلى 18 كائناً. كل كائن يحتوي nam
                         "type": {"type": "string", "enum": ["tatami", "satin", "run", "triple", "backstitch"]},
                         "points": {
                             "type": "array",
-                            "minItems": 9,
-                            "maxItems": 24,
+                            "minItems": 4,
+                            "maxItems": 40,
                             "items": {
                                 "type": "object",
                                 "additionalProperties": False,
@@ -576,37 +576,55 @@ objects مصفوفة من 3 إلى 18 كائناً. كل كائن يحتوي nam
             raw = extract_model_text(result)
             payload = parse_model_json(raw)
 
-            def contains_objects(value: dict[str, Any] | None) -> bool:
+            def geometry_problem(value: dict[str, Any] | None) -> str | None:
                 if not isinstance(value, dict):
-                    return False
+                    return "لم يرجع النموذج كائن JSON."
                 candidates = value.get("objects")
-                if not isinstance(candidates, list) or len(candidates) < 3:
-                    return False
-                # Reject invalid stitch/geometry combinations before normalization.
+                if not isinstance(candidates, list) or not 3 <= len(candidates) <= 18:
+                    return "عدد العناصر يجب أن يكون من 3 إلى 18."
                 seen_geometry: set[tuple[tuple[float, float], ...]] = set()
-                for item in candidates:
+                for index, item in enumerate(candidates, start=1):
                     if not isinstance(item, dict) or not isinstance(item.get("points"), list):
-                        return False
+                        return f"العنصر {index}: بيانات العنصر أو قائمة النقاط مفقودة."
                     points = item["points"]
-                    closed = item.get("closed") is True
-                    if closed and (len(points) < 9 or item.get("type") != "tatami"):
-                        return False
-                    if not closed and (len(points) < 4 or item.get("type") not in {"satin", "run", "triple", "backstitch"}):
-                        return False
+                    closed = item.get("closed")
+                    if not isinstance(closed, bool):
+                        return f"العنصر {index}: closed يجب أن تكون true أو false."
+                    kind = item.get("type")
+                    if closed and (len(points) < 9 or kind != "tatami"):
+                        return f"العنصر {index}: الشكل المغلق يحتاج tatami و9 نقاط على الأقل (وصل {len(points)} ونوعه {kind})."
+                    if not closed and (len(points) < 4 or kind not in {"satin", "run", "triple", "backstitch"}):
+                        return f"العنصر {index}: المسار المفتوح يحتاج 4 نقاط على الأقل ونوع غرزة خطي (وصل {len(points)} ونوعه {kind})."
+                    if len(points) > 40:
+                        return f"العنصر {index}: تجاوز 40 نقطة."
                     if not all(isinstance(p, dict) and isinstance(p.get("x"), (int, float)) and isinstance(p.get("y"), (int, float)) for p in points):
-                        return False
+                        return f"العنصر {index}: الإحداثيات ليست أرقاماً."
+                    if not all(math.isfinite(float(p["x"])) and math.isfinite(float(p["y"])) and 0 <= float(p["x"]) <= 1 and 0 <= float(p["y"]) <= 1 for p in points):
+                        return f"العنصر {index}: توجد إحداثيات خارج النطاق 0..1."
                     unique = {(round(float(p["x"]), 4), round(float(p["y"]), 4)) for p in points}
                     if len(unique) < (6 if closed else 4):
-                        return False
+                        return f"العنصر {index}: نقاط مكررة ولا تكوّن شكلاً."
                     fingerprint = tuple(sorted(unique))
                     if fingerprint in seen_geometry:
-                        return False
+                        return f"العنصر {index}: يكرر هندسة عنصر سابق."
                     seen_geometry.add(fingerprint)
                     if closed:
                         area = abs(sum(float(points[i]["x"]) * float(points[(i + 1) % len(points)]["y"]) - float(points[(i + 1) % len(points)]["x"]) * float(points[i]["y"]) for i in range(len(points))) / 2)
-                        if area < 0.0005 or polygon_has_self_intersection(points):
-                            return False
-                return True
+                        if area < 0.0005:
+                            return f"العنصر {index}: مساحة الشكل صغيرة جداً."
+                        if polygon_has_self_intersection(points):
+                            return f"العنصر {index}: حدود الشكل تتقاطع مع نفسها."
+                    color = item.get("color")
+                    if not isinstance(color, str) or len(color) != 7 or not color.startswith("#"):
+                        return f"العنصر {index}: رمز اللون غير صالح."
+                    try:
+                        int(color[1:], 16)
+                    except ValueError:
+                        return f"العنصر {index}: رمز اللون غير صالح."
+                return None
+
+            def contains_objects(value: dict[str, Any] | None) -> bool:
+                return geometry_problem(value) is None
 
             # Retry once with a shorter, internally consistent geometry contract.
             if not contains_objects(payload):
@@ -620,7 +638,8 @@ objects مصفوفة من 3 إلى 18 كائناً. كل كائن يحتوي nam
                                 "للأشكال المغلقة tatami فقط؛ للمسارات المفتوحة satin أو run أو triple أو backstitch فقط. لا تستخدم motif أو complex. "
                                 "كل نقطة تحوي x و y بين 0 و1 و curve منطقية. "
                                 "كل شكل مغلق tatami يحتاج 9 نقاط على الأقل، وكل مسار مفتوح satin أو run أو triple أو backstitch يحتاج 4 نقاط على الأقل. "
-                                "لا تستخدم أمثلة مختصرة أو نقاطاً أقل من الحد المطلوب."
+                                "لا تستخدم أمثلة مختصرة أو نقاطاً أقل من الحد المطلوب. "
+                                "إذا كان هناك خلل محدد في المحاولة السابقة فأصلحه دون تغيير فكرة التصميم."
                             ),
                         },
                         {
@@ -629,6 +648,8 @@ objects مصفوفة من 3 إلى 18 كائناً. كل كائن يحتوي nam
                                 "أنشئ JSON صالحاً الآن. ارسم الأشكال المطلوبة فعلياً بنقاط كافية وحدود طبيعية. "
                                 "اجعل الأشكال المغلقة من 9 إلى 24 نقطة والمسارات المفتوحة من 4 إلى 10 نقاط. "
                                 "طلب المستخدم: " + generation_prompt
+                                + "\\nسبب رفض المحاولة الأولى: " + str(geometry_problem(payload) or "تعذر تحليل الهندسة")
+                                + "\\nصحح JSON السابق التالي مع الاحتفاظ بفكرته: " + raw[:12000]
                                 + "\\nالأبعاد: " + str(width_mm) + " × " + str(height_mm) + " مم. القماش: " + fabric
                             ),
                         },
@@ -647,6 +668,7 @@ objects مصفوفة من 3 إلى 18 كائناً. كل كائن يحتوي nam
                         len(raw), len(repaired_raw),
                         list(repaired_payload.keys()) if isinstance(repaired_payload, dict) else [],
                     )
+                    logger.warning("Cloudflare geometry validation reason: %s", geometry_problem(repaired_payload) or "unknown")
                     raise HTTPException(
                         status_code=502,
                         detail="لم يتمكن النموذج من إنشاء هندسة صالحة بعد محاولتين. جرّب وصفاً أبسط.",
