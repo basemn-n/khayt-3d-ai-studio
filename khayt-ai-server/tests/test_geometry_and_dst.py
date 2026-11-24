@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import math
 import sys
 import unittest
 from pathlib import Path
@@ -10,7 +11,6 @@ import main
 
 
 def circle(cx: float, cy: float, rx: float, ry: float, count: int = 12):
-    import math
     return [
         {
             "x": cx + rx * math.cos(2 * math.pi * i / count),
@@ -21,20 +21,26 @@ def circle(cx: float, cy: float, rx: float, ry: float, count: int = 12):
     ]
 
 
+def valid_open_objects():
+    return [
+        {"name": "ساق", "type": "run", "points": [
+            {"x": .5, "y": .45}, {"x": .51, "y": .6},
+            {"x": .49, "y": .75}, {"x": .5, "y": .9},
+        ], "closed": False, "color": "#23834b"},
+        {"name": "عمود ساتان", "type": "satin", "points": [
+            {"x": .3, "y": .5}, {"x": .35, "y": .55},
+            {"x": .4, "y": .6}, {"x": .45, "y": .65},
+        ], "closed": False, "color": "#23834b"},
+    ]
+
+
 class GeometryValidationTests(unittest.TestCase):
     def test_valid_mixed_embroidery_geometry(self):
         payload = {
             "summary": "اختبار وردة",
             "objects": [
                 {"name": "بتلة", "type": "tatami", "points": circle(.5, .3, .12, .16), "closed": True, "color": "#d92d45"},
-                {"name": "ساق", "type": "run", "points": [
-                    {"x": .5, "y": .45}, {"x": .51, "y": .6},
-                    {"x": .49, "y": .75}, {"x": .5, "y": .9},
-                ], "closed": False, "color": "#23834b"},
-                {"name": "عمود ساتان", "type": "satin", "points": [
-                    {"x": .3, "y": .5}, {"x": .35, "y": .55},
-                    {"x": .4, "y": .6}, {"x": .45, "y": .65},
-                ], "closed": False, "color": "#23834b"},
+                *valid_open_objects(),
             ],
         }
         result = main.normalize_design(payload, 120, 150)
@@ -44,27 +50,37 @@ class GeometryValidationTests(unittest.TestCase):
         self.assertEqual(result["objects"][2]["fill"], "satin")
 
     def test_rejects_unsupported_complex_type(self):
-        payload = {"objects": [{
-            "name": "شكل", "type": "complex", "points": circle(.5, .5, .2, .2),
-            "closed": True, "color": "#123456",
-        }]}
+        payload = {"objects": [
+            {"name": "شكل", "type": "complex", "points": circle(.5, .5, .2, .2), "closed": True, "color": "#123456"},
+            *valid_open_objects(),
+        ]}
         with self.assertRaises(main.HTTPException):
             main.normalize_design(payload, 100, 100)
 
     def test_rejects_satin_as_closed_polygon(self):
-        payload = {"objects": [{
-            "name": "ساتان", "type": "satin", "points": circle(.5, .5, .2, .2),
-            "closed": True, "color": "#123456",
-        }]}
+        payload = {"objects": [
+            {"name": "ساتان", "type": "satin", "points": circle(.5, .5, .2, .2), "closed": True, "color": "#123456"},
+            *valid_open_objects(),
+        ]}
         with self.assertRaises(main.HTTPException):
             main.normalize_design(payload, 100, 100)
 
     def test_rejects_degenerate_closed_shape(self):
         points = [{"x": .5, "y": .5 + i * .001, "curve": False} for i in range(9)]
-        payload = {"objects": [{
-            "name": "خط", "type": "tatami", "points": points,
-            "closed": True, "color": "#123456",
-        }]}
+        payload = {"objects": [
+            {"name": "خط", "type": "tatami", "points": points, "closed": True, "color": "#123456"},
+            *valid_open_objects(),
+        ]}
+        with self.assertRaises(main.HTTPException):
+            main.normalize_design(payload, 100, 100)
+
+    def test_rejects_coordinates_outside_normalized_canvas(self):
+        points = circle(.5, .5, .2, .2)
+        points[0]["x"] = 1.2
+        payload = {"objects": [
+            {"name": "خارج الحدود", "type": "tatami", "points": points, "closed": True, "color": "#123456"},
+            *valid_open_objects(),
+        ]}
         with self.assertRaises(main.HTTPException):
             main.normalize_design(payload, 100, 100)
 
