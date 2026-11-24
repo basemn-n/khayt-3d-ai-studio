@@ -133,10 +133,7 @@ class DSTExportRequest(BaseModel):
     stitches: list[DSTStitch] = Field(min_length=2, max_length=150000)
 
 
-ALLOWED_TYPES = {
-    "tatami", "motif", "satin", "run", "triple", "backstitch",
-    "widezig", "applique", "ring", "star", "circle", "inputA", "inputB",
-}
+ALLOWED_TYPES = {"tatami", "satin", "run", "triple", "backstitch"}
 
 
 
@@ -245,7 +242,7 @@ def normalize_design(payload: dict[str, Any], width: float, height: float) -> di
             continue
         kind = str(raw.get("type", "tatami"))
         if kind not in ALLOWED_TYPES:
-            kind = "tatami"
+            raise HTTPException(status_code=502, detail=f"نوع غرزة غير مدعوم في الكائن {index}: {kind}. لم يتم تغيير النوع تلقائياً.")
 
         points = raw.get("points", [])
         if not isinstance(points, list):
@@ -266,8 +263,17 @@ def normalize_design(payload: dict[str, Any], width: float, height: float) -> di
             })
 
         closed = bool(raw.get("closed", False))
-        if len(clean_points) < (3 if closed else 2):
-            continue
+        if closed and (kind != "tatami" or len(clean_points) < 9):
+            raise HTTPException(status_code=502, detail=f"الكائن {index} يحتاج شكلاً مغلقاً من نوع tatami وبـ9 نقاط على الأقل.")
+        if not closed and (kind not in {"satin", "run", "triple", "backstitch"} or len(clean_points) < 4):
+            raise HTTPException(status_code=502, detail=f"الكائن {index} يحتاج مساراً مفتوحاً صالحاً من 4 نقاط على الأقل.")
+        unique_points = {(p["x"], p["y"]) for p in clean_points}
+        if len(unique_points) < (6 if closed else 4):
+            raise HTTPException(status_code=502, detail=f"نقاط الكائن {index} مكررة ولا تصنع هندسة كافية.")
+        if closed:
+            area = abs(sum(clean_points[i]["x"] * clean_points[(i + 1) % len(clean_points)]["y"] - clean_points[(i + 1) % len(clean_points)]["x"] * clean_points[i]["y"] for i in range(len(clean_points))) / 2)
+            if area < 0.0005:
+                raise HTTPException(status_code=502, detail=f"مساحة الكائن {index} صغيرة جداً أو نقاطه على خط واحد.")
 
         color = str(raw.get("color", "#176447"))
         if not (len(color) == 7 and color.startswith("#")):
@@ -290,7 +296,7 @@ def normalize_design(payload: dict[str, Any], width: float, height: float) -> di
             "points": clean_points,
             "closed": closed,
             "color": color,
-            "fill": str(raw.get("fill") or ("satin" if kind == "satin" else "tatami")),
+            "fill": {"tatami": "tatami", "satin": "satin", "run": "run", "triple": "triple", "backstitch": "backstitch"}[kind],
             "spacing": bounded("spacing", 0.45, 0.2, 1.2),
             "stitch_length": bounded("stitch_length", 3.2, 0.5, 7),
             "max_stitch_length": bounded("max_stitch_length", 7, 1, 12),
@@ -429,12 +435,12 @@ async def create_design(
 أبعاد القماش: {width_mm} × {height_mm} مم. نوع القماش: {fabric}.
 أخرج JSON فقط بالمفتاحين summary و objects.
 objects مصفوفة من 3 إلى 18 كائناً. كل كائن يحتوي name و type و points و closed و color.
-للأشكال المغلقة استخدم tatami أو satin فقط. للمسارات المفتوحة استخدم run أو triple أو backstitch فقط. لا تستخدم motif أو نوعاً عاماً مثل complex.
+للأشكال المغلقة استخدم tatami فقط وبـ9 إلى 24 نقطة. للمسارات المفتوحة استخدم satin أو run أو triple أو backstitch وبـ4 إلى 10 نقاط. لا تستخدم motif أو complex.
 كل نقطة كائن يحوي x و y بين 0 و1 و curve قيمة true أو false.
-للشكل المغلق: استخدم 9 إلى 24 نقطة على المحيط. لا تستخدم مثلثات أو خماسيات بدائية. اجعل البتلات مستديرة والأوراق طويلة ومدببة بانحناءات طبيعية.
-للمسار المفتوح: استخدم 4 إلى 10 نقاط على محور المسار.
+للشكل المغلق: استخدم tatami فقط و9 إلى 24 نقطة على المحيط. لا تستخدم مثلثات أو خماسيات بدائية. اجعل البتلات مستديرة والأوراق طويلة ومدببة بانحناءات طبيعية.
+للمسار المفتوح: استخدم 4 إلى 10 نقاط على محور المسار. استخدم satin لمسار عمود ساتان مفتوح بخط مركزي، وrun أو triple أو backstitch للخطوط الرفيعة.
 اجعل النقاط موزعة على الشكل وليست متقاربة في موضع واحد. لا تكرر الإحداثيات أو الأشكال.
-قسّم التصميم إلى أجزاء منفصلة حسب اللون. استخدم tatami للمساحات العريضة المغلقة، satin للأعمدة الرفيعة، وrun للخطوط الرفيعة.
+قسّم التصميم إلى أجزاء منفصلة حسب اللون. استخدم tatami للمساحات العريضة المغلقة، satin لمسارات الأعمدة المفتوحة، وrun أو triple أو backstitch للخطوط الرفيعة.
 يمكن إضافة fill و spacing و stitch_length و max_stitch_length و angle و satin_width عند الحاجة.
 كل الإحداثيات ضمن 0..1. لا تكتب fusion كنوع. لا تضع Markdown أو شرحاً خارج JSON.
 لا تدّعِ أن الناتج ملف DST نهائي؛ إنه مقترح هندسي سيحوّله البرنامج إلى غرز.
@@ -531,9 +537,9 @@ objects مصفوفة من 3 إلى 18 كائناً. كل كائن يحتوي nam
                     if not isinstance(item, dict) or not isinstance(item.get("points"), list):
                         return False
                     points = item["points"]
-                    if item.get("closed") is True and (len(points) < 9 or item.get("type") not in {"tatami", "satin"}):
+                    if item.get("closed") is True and (len(points) < 9 or item.get("type") != "tatami"):
                         return False
-                    if item.get("closed") is False and (len(points) < 4 or item.get("type") not in {"run", "triple", "backstitch"}):
+                    if item.get("closed") is False and (len(points) < 4 or item.get("type") not in {"satin", "run", "triple", "backstitch"}):
                         return False
                 return True
 
@@ -546,9 +552,9 @@ objects مصفوفة من 3 إلى 18 كائناً. كل كائن يحتوي nam
                             "content": (
                                 "أنت مهندس تطريز. أخرج JSON فقط بالمفتاحين summary و objects. "
                                 "أنشئ 3 إلى 12 كائناً. كل كائن يحتوي name و type و points و closed و color. "
-                                "للأشكال المغلقة استخدم tatami أو satin فقط، وللمسارات المفتوحة run أو triple أو backstitch فقط. لا تستخدم motif أو complex. "
+                                "للأشكال المغلقة tatami فقط؛ للمسارات المفتوحة satin أو run أو triple أو backstitch فقط. لا تستخدم motif أو complex. "
                                 "كل نقطة تحوي x و y بين 0 و1 و curve منطقية. "
-                                "كل شكل مغلق يحتاج 9 نقاط على الأقل، وكل مسار مفتوح يحتاج 4 نقاط على الأقل. "
+                                "كل شكل مغلق tatami يحتاج 9 نقاط على الأقل، وكل مسار مفتوح satin أو run أو triple أو backstitch يحتاج 4 نقاط على الأقل. "
                                 "لا تستخدم أمثلة مختصرة أو نقاطاً أقل من الحد المطلوب."
                             ),
                         },
