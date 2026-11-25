@@ -264,7 +264,7 @@ def normalize_design(payload: dict[str, Any], width: float, height: float) -> di
             raise HTTPException(status_code=502, detail=f"نوع غرزة غير مدعوم في الكائن {index}: {kind}. لم يتم تغيير النوع تلقائياً.")
 
         points = raw.get("points", [])
-        if not isinstance(points, list) or not 4 <= len(points) <= 40:
+        if not isinstance(points, list) or not 4 <= len(points) <= 100:
             raise HTTPException(status_code=502, detail=f"عدد نقاط الكائن {index} يجب أن يكون بين 4 و40.")
         clean_points = []
         for point in points:
@@ -615,6 +615,10 @@ def trace_line_art_image(raw_image: bytes, width_mm: float, height_mm: float) ->
     if w < 20 or h < 20:
         raise HTTPException(status_code=422, detail="أبعاد الصورة صغيرة جداً لتتبّع الخطوط.")
 
+    if max(h, w) > 1800:
+        factor = 1800 / max(h, w)
+        image = cv2.resize(image, (max(20, int(w * factor)), max(20, int(h * factor))), interpolation=cv2.INTER_AREA)
+        h, w = image.shape[:2]
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     # Adaptive threshold retains thin black strokes on white or lightly textured paper.
     mask = cv2.adaptiveThreshold(
@@ -735,8 +739,8 @@ def trace_line_art_image(raw_image: bytes, width_mm: float, height_mm: float) ->
             simplified = simplified[indices]
         points = []
         for px, py in simplified:
-            nx = pad + ((float(px) / max(1, dw - 1)) * (1 - 2 * pad))
-            ny = pad + ((float(py) / max(1, dh - 1)) * (1 - 2 * pad))
+            nx = 0.5 + ((float(px) - (dw - 1) / 2) / scale) * (1 - 2 * pad)
+            ny = 0.5 + ((float(py) - (dh - 1) / 2) / scale) * (1 - 2 * pad)
             points.append({"x": round(nx, 5), "y": round(ny, 5), "curve": True})
         if len(points) >= 4:
             objects.append({
