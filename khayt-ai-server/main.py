@@ -629,6 +629,12 @@ def trace_line_art_image(raw_image: bytes, width_mm: float, height_mm: float) ->
     for label in range(1, count):
         if stats[label, cv2.CC_STAT_AREA] >= 3:
             clean[labels == label] = 255
+
+    # Bridge only tiny one-pixel breaks in scanned/photographed line art before
+    # skeletonization. A small elliptical kernel avoids broadly merging nearby motifs.
+    bridge_kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+    clean = cv2.morphologyEx(clean, cv2.MORPH_CLOSE, bridge_kernel, iterations=1)
+
     ys, xs = np.where(clean > 0)
     if len(xs) < 30:
         raise HTTPException(status_code=422, detail="لم أعثر على خطوط داكنة كافية في الصورة.")
