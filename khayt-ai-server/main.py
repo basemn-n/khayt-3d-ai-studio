@@ -251,8 +251,8 @@ def polygon_has_self_intersection(points: list[dict[str, Any]]) -> bool:
 
 def normalize_design(payload: dict[str, Any], width: float, height: float) -> dict[str, Any]:
     raw_objects = payload.get("objects")
-    if not isinstance(raw_objects, list) or not 3 <= len(raw_objects) <= 18:
-        raise HTTPException(status_code=502, detail="يجب أن يحتوي التصميم على 3 إلى 18 كائناً هندسياً صالحاً.")
+    if not isinstance(raw_objects, list) or not 3 <= len(raw_objects) <= 80:
+        raise HTTPException(status_code=502, detail="يجب أن يحتوي التصميم على 3 إلى 80 كائناً هندسياً صالحاً.")
 
     objects: list[dict[str, Any]] = []
     geometry_fingerprints: set[tuple[tuple[float, float], ...]] = set()
@@ -597,6 +597,183 @@ async def health() -> dict[str, Any]:
     }
 
 
+
+
+def trace_line_art_image(raw_image: bytes, width_mm: float, height_mm: float) -> dict[str, Any]:
+    """Trace monochrome artwork into editable, unfilled running-stitch paths without AI."""
+    try:
+        import cv2
+        import numpy as np
+    except ImportError as exc:
+        logger.exception("OpenCV is required for deterministic line-art tracing")
+        raise HTTPException(status_code=503, detail="ميزة تتبّع الخطوط تحتاج مكتبة معالجة الصور؛ أعد نشر الخادم بعد تحديث المتطلبات.") from exc
+
+    image = cv2.imdecode(np.frombuffer(raw_image, dtype=np.uint8), cv2.IMREAD_COLOR)
+    if image is None:
+        raise HTTPException(status_code=415, detail="تعذر قراءة الصورة. استخدم PNG أو JPG أو WEBP.")
+    h, w = image.shape[:2]
+    if w < 20 or h < 20:
+        raise HTTPException(status_code=422, detail="أبعاد الصورة صغيرة جداً لتتبّع الخطوط.")
+
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    # Adaptive threshold retains thin black strokes on white or lightly textured paper.
+    mask = cv2.adaptiveThreshold(
+        gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 31, 9
+    )
+    count, labels, stats, _ = cv2.connectedComponentsWithStats(mask, 8)
+    clean = np.zeros_like(mask)
+    for label in range(1, count):
+        if stats[label, cv2.CC_STAT_AREA] >= 3:
+            clean[labels == label] = 255
+    ys, xs = np.where(clean > 0)
+    if len(xs) < 30:
+        raise HTTPException(status_code=422, detail="لم أعثر على خطوط داكنة كافية في الصورة.")
+
+    # Crop to the drawing and keep its original aspect ratio on the embroidery canvas.
+    x0, x1 = int(xs.min()), int(xs.max()) + 1
+    y0, y1 = int(ys.min()), int(ys.max()) + 1
+    drawing = clean[y0:y1, x0:x1]
+    dh, dw = drawing.shape
+
+    # Morphological skeletonization reduces each outlined pen stroke to a single centerline.
+    work = drawing.copy()
+    skeleton = np.zeros_like(work)
+    kernel = cv2.getStructuringElement(cv2.MORPH_CROSS, (3, 3))
+    for _ in range(max(dw, dh)):
+        eroded = cv2.erode(work, kernel)
+        opened = cv2.dilate(eroded, kernel)
+        residue = cv2.subtract(work, opened)
+        skeleton = cv2.bitwise_or(skeleton, residue)
+        work = eroded
+        if cv2.countNonZero(work) == 0:
+            break
+
+    yy, xx = np.where(skeleton > 0)
+    pixels = set(zip(xx.tolist(), yy.tolist()))
+    if len(pixels) < 20:
+        raise HTTPException(status_code=422, detail="تعذر استخراج خطوط متصلة من الصورة.")
+
+    offsets = [(-1,-1),(0,-1),(1,-1),(-1,0),(1,0),(-1,1),(0,1),(1,1)]
+    adjacency: dict[tuple[int,int], list[tuple[int,int]]] = {}
+    for p in pixels:
+        x, y = p
+        ns = []
+        for dx, dy in offsets:
+            q = (x + dx, y + dy)
+            if q not in pixels:
+                continue
+            # Avoid counting a diagonal shortcut when an orthogonal connection exists.
+            if dx and dy and ((x + dx, y) in pixels or (x, y + dy) in pixels):
+                continue
+            ns.append(q)
+        adjacency[p] = ns
+
+    visited: set[tuple[tuple[int,int], tuple[int,int]]] = set()
+    paths: list[list[tuple[int,int]]] = []
+
+    def edge(a: tuple[int,int], b: tuple[int,int]) -> tuple[tuple[int,int], tuple[int,int]]:
+        return (a, b) if a <= b else (b, a)
+
+    # Start at endpoints and junctions, splitting paths at branch points.
+    for start, neighbors in adjacency.items():
+        if len(neighbors) == 2:
+            continue
+        for nxt in neighbors:
+            first_edge = edge(start, nxt)
+            if first_edge in visited:
+                continue
+            visited.add(first_edge)
+            path = [start, nxt]
+            prev, cur = start, nxt
+            while len(adjacency[cur]) == 2:
+                candidates = [q for q in adjacency[cur] if q != prev and edge(cur, q) not in visited]
+                if not candidates:
+                    break
+                q = candidates[0]
+                visited.add(edge(cur, q))
+                path.append(q)
+                prev, cur = cur, q
+            if len(path) >= 8:
+                paths.append(path)
+
+    # Also collect closed loops, which have no endpoints or junctions.
+    for start, neighbors in adjacency.items():
+        for nxt in neighbors:
+            if edge(start, nxt) in visited:
+                continue
+            visited.add(edge(start, nxt))
+            path = [start, nxt]
+            prev, cur = start, nxt
+            while True:
+                candidates = [q for q in adjacency[cur] if q != prev and edge(cur, q) not in visited]
+                if not candidates:
+                    break
+                q = candidates[0]
+                visited.add(edge(cur, q))
+                path.append(q)
+                prev, cur = cur, q
+                if cur == start:
+                    break
+            if len(path) >= 8:
+                paths.append(path)
+
+    objects: list[dict[str, Any]] = []
+    pad = 0.025
+    scale = max(dw, dh)
+    for index, path in enumerate(paths, start=1):
+        pts = np.asarray(path, dtype=np.float32).reshape((-1, 1, 2))
+        perimeter = cv2.arcLength(pts, False)
+        if perimeter < 18:
+            continue
+        simplified = cv2.approxPolyDP(pts, max(0.8, scale * 0.0015), False).reshape((-1, 2))
+        if len(simplified) < 4:
+            # Keep enough centerline points for a smooth stitch path.
+            indices = np.linspace(0, len(path) - 1, min(8, len(path))).astype(int)
+            simplified = np.asarray([path[i] for i in indices], dtype=np.float32)
+        if len(simplified) > 96:
+            indices = np.linspace(0, len(simplified) - 1, 96).astype(int)
+            simplified = simplified[indices]
+        points = []
+        for px, py in simplified:
+            nx = pad + ((float(px) / max(1, dw - 1)) * (1 - 2 * pad))
+            ny = pad + ((float(py) / max(1, dh - 1)) * (1 - 2 * pad))
+            points.append({"x": round(nx, 5), "y": round(ny, 5), "curve": True})
+        if len(points) >= 4:
+            objects.append({
+                "name": f"خط مرسوم {len(objects) + 1}",
+                "type": "run",
+                "points": points,
+                "closed": False,
+                "color": "#000000",
+                "fill": "run",
+                "spacing": 0.45,
+                "stitch_length": 2.5,
+                "max_stitch_length": 5,
+                "angle": 0,
+            })
+
+    if len(objects) < 3:
+        raise HTTPException(status_code=422, detail="الصورة لم تنتج ثلاثة مسارات خطية واضحة على الأقل. استخدم صورة أوضح بخلفية بيضاء وخطوط داكنة.")
+    if len(objects) > 80:
+        objects = sorted(objects, key=lambda item: len(item["points"]), reverse=True)[:80]
+
+    traced = normalize_design(
+        {"summary": "تم تتبّع خطوط الصورة آلياً دون استخدام Cloudflare AI. المسارات غرزة جارية سوداء بلا تعبئة؛ راجع المسارات قبل الإنتاج.", "objects": objects},
+        width_mm, height_mm
+    )
+    traced["model"] = "OpenCV deterministic line tracing"
+    traced["provider"] = "Khayt built-in image tracing"
+    traced["generation_mode"] = "image_trace"
+    traced["trace_info"] = {
+        "source_width_px": w,
+        "source_height_px": h,
+        "paths": len(traced["objects"]),
+        "stitch_type": "run",
+        "filled_areas": False,
+    }
+    return traced
+
+
 @app.post("/api/ai/design")
 async def create_design(
     prompt: str = Form(default=""),
@@ -657,6 +834,9 @@ objects مصفوفة من 3 إلى 18 كائناً. كل كائن يحتوي nam
         raw_image = await image.read()
         if not raw_image or len(raw_image) > MAX_IMAGE_BYTES:
             raise HTTPException(status_code=413, detail="حجم الصورة فارغ أو يتجاوز 12 ميجابايت.")
+        # Explicit line-art requests use local deterministic tracing and never call a paid/quota-limited AI model.
+        if re.search(r"(تتبّع|تتبع|الخطوط|خطوط فقط|خطية|زخرفة خطية|بدون تعبئة|لا تستخدم تعبئة|مساحات بيضاء|running stitch|line art)", prompt, re.IGNORECASE):
+            return trace_line_art_image(raw_image, width_mm, height_mm)
         encoded = base64.b64encode(raw_image).decode("ascii")
         image_data_url = f"data:{content_type};base64,{encoded}"
         user_content.append({
