@@ -731,39 +731,16 @@ objects مصفوفة من 3 إلى 18 كائناً. كل كائن يحتوي nam
                         return f"العنصر {index}: رمز اللون غير صالح."
                 return None
 
-            def flower_completeness_problem(value: dict[str, Any] | None) -> str | None:
-                if not re.search(r"(توليب|وردة|زهرة|tulip|rose|flower)", prompt, re.IGNORECASE):
-                    return None
-                objects = value.get("objects", []) if isinstance(value, dict) else []
-                filled_petals = [
-                    item for item in objects
-                    if item.get("closed") is True
-                    and item.get("type") == "tatami"
-                    and re.search(r"(بتل|بتلة|petal)", str(item.get("name", "")), re.IGNORECASE)
-                ]
-                filled_leaves = [
-                    item for item in objects
-                    if item.get("closed") is True
-                    and item.get("type") == "tatami"
-                    and re.search(r"(ورق|ورقة|leaf)", str(item.get("name", "")), re.IGNORECASE)
-                ]
-                stems = [
-                    item for item in objects
-                    if item.get("closed") is False
-                    and item.get("type") == "satin"
-                    and re.search(r"(ساق|stem)", str(item.get("name", "")), re.IGNORECASE)
-                ]
-                missing = []
-                if len(filled_petals) < 3:
-                    missing.append(f"ثلاث بتلات معبأة TATAMI (الموجود {len(filled_petals)})")
-                if len(filled_leaves) < 2:
-                    missing.append(f"ورقتان معبأتان TATAMI (الموجود {len(filled_leaves)})")
-                if not stems:
-                    missing.append("ساق واضحة SATIN")
-                return ("اكتمال تصميم الزهرة غير مقبول: يلزم " + "، ".join(missing) + ".") if missing else None
-
             def contains_objects(value: dict[str, Any] | None) -> bool:
-                return geometry_problem(value) is None and flower_completeness_problem(value) is None
+                if geometry_problem(value) is not None:
+                    return False
+                if not re.search(r"(توليب|وردة|زهرة|tulip|rose|flower)", prompt, re.IGNORECASE):
+                    return True
+                objects = value.get("objects", []) if isinstance(value, dict) else []
+                filled_petals = [item for item in objects if item.get("closed") is True and item.get("type") == "tatami" and re.search(r"(بتل|بتلة|petal)", str(item.get("name", "")), re.IGNORECASE)]
+                filled_leaves = [item for item in objects if item.get("closed") is True and item.get("type") == "tatami" and re.search(r"(ورق|ورقة|leaf)", str(item.get("name", "")), re.IGNORECASE)]
+                stems = [item for item in objects if item.get("closed") is False and item.get("type") == "satin" and re.search(r"(ساق|stem)", str(item.get("name", "")), re.IGNORECASE)]
+                return len(filled_petals) >= 3 and len(filled_leaves) >= 2 and bool(stems)
 
             # Retry once with a shorter, internally consistent geometry contract.
             if not contains_objects(payload):
@@ -787,7 +764,7 @@ objects مصفوفة من 3 إلى 18 كائناً. كل كائن يحتوي nam
                                 "أنشئ JSON صالحاً الآن. ارسم الأشكال المطلوبة فعلياً بنقاط كافية وحدود طبيعية. "
                                 "اجعل الأشكال المغلقة من 9 إلى 24 نقطة والمسارات المفتوحة من 4 إلى 10 نقاط. "
                                 "طلب المستخدم: " + generation_prompt
-                                + "\\nسبب رفض المحاولة الأولى: " + str(geometry_problem(payload) or flower_completeness_problem(payload) or "تعذر تحليل الهندسة")
+                                + "\\nسبب رفض المحاولة الأولى: " + str(geometry_problem(payload) or "تصميم الزهرة ناقص: يلزم ثلاث بتلات TATAMI وورقتان TATAMI وساق SATIN.")
                                 + "\\nصحح JSON السابق التالي مع الاحتفاظ بفكرته: " + raw[:12000]
                                 + "\\nالأبعاد: " + str(width_mm) + " × " + str(height_mm) + " مم. القماش: " + fabric
                             ),
