@@ -1090,16 +1090,23 @@ objects مصفوفة من 3 إلى 18 كائناً. كل كائن يحتوي nam
         ) from exc
 
 
-@app.post("/api/export/dst")
-async def export_dst(request: DSTExportRequest) -> Response:
-    """Encode validated stitch coordinates as a Tajima DST embroidery file."""
+@app.post("/api/export/{format_name}")
+async def export_embroidery(request: DSTExportRequest, format_name: str) -> Response:
+    """Encode validated stitch coordinates in a supported machine embroidery format."""
+    format_name = format_name.strip().lower()
+    writer_names = {"dst": "write_dst", "pes": "write_pes", "jef": "write_jef", "exp": "write_exp", "vp3": "write_vp3"}
+    if format_name not in writer_names:
+        raise HTTPException(status_code=422, detail="صيغة الملف غير مدعومة حالياً. الصيغ المتاحة: DST وPES وJEF وEXP وVP3.")
     if len(request.stitches) > 120000:
         raise HTTPException(status_code=413, detail="عدد الغرز يتجاوز الحد الآمن للتصدير (120 ألف غرزة).")
+
+    writer = getattr(pyembroidery, writer_names[format_name], None)
+    if not callable(writer):
+        raise HTTPException(status_code=501, detail=f"محرك الترميز المثبت لا يوفر صيغة {format_name.upper()} حالياً.")
 
     pattern = pyembroidery.EmbPattern()
     pattern["name"] = request.name[:16]
     pattern += request.initial_color
-
     stitch_count = 0
     color_count = 0
 
@@ -1111,10 +1118,8 @@ async def export_dst(request: DSTExportRequest) -> Response:
                 pattern += item.color
                 color_count += 1
                 continue
-
             if item.x > request.width_mm or item.y > request.height_mm:
                 raise HTTPException(status_code=422, detail="توجد غرزة خارج حدود مساحة القماش.")
-
             x = round(item.x * 10, 3)
             y = round(-item.y * 10, 3)
             if item.jump:
@@ -1122,35 +1127,33 @@ async def export_dst(request: DSTExportRequest) -> Response:
             else:
                 pattern.add_stitch_absolute(pyembroidery.STITCH, x, y)
                 stitch_count += 1
-
         if stitch_count < 2:
-            raise HTTPException(status_code=422, detail="لا توجد غرز فعلية كافية لإنشاء ملف DST.")
+            raise HTTPException(status_code=422, detail="لا توجد غرز فعلية كافية لإنشاء ملف تطريز.")
         pattern.add_command(pyembroidery.END)
-
         output = io.BytesIO()
-        pyembroidery.write_dst(
-            pattern,
-            output,
-            {"explicit_trim": True, "max_stitch": 121, "max_jump": 121},
-        )
+        if format_name == "dst":
+            writer(pattern, output, {"explicit_trim": True, "max_stitch": 121, "max_jump": 121})
+        else:
+            writer(pattern, output)
         content = output.getvalue()
-        if len(content) < 515 or len(content) % 3 != 2:
-            logger.error("DST encoder returned an unexpected file length: %s", len(content))
-            raise HTTPException(status_code=500, detail="تعذر التحقق من بنية ملف DST الناتج.")
+        if not content or (format_name == "dst" and (len(content) < 515 or len(content) % 3 != 2)):
+            logger.error("%s encoder returned an unexpected file length: %s", format_name.upper(), len(content))
+            raise HTTPException(status_code=500, detail="تعذر التحقق من بنية ملف التطريز الناتج.")
     except HTTPException:
         raise
     except Exception as exc:
-        logger.exception("DST export failed")
-        raise HTTPException(status_code=500, detail="حدث خطأ أثناء ترميز ملف DST. راجع سجل الخادم.") from exc
+        logger.exception("%s export failed", format_name.upper())
+        raise HTTPException(status_code=500, detail=f"حدث خطأ أثناء إنشاء ملف {format_name.upper()}. راجع سجل الخادم.") from exc
 
     safe_name = "".join(ch for ch in request.name if ch.isalnum() or ch in " _-").strip()[:48] or "khayt-design"
     return Response(
         content=content,
         media_type="application/octet-stream",
         headers={
-            "Content-Disposition": f'attachment; filename="{safe_name}.dst"',
+            "Content-Disposition": f'attachment; filename="{safe_name}.{format_name}"',
             "X-Khayt-Stitch-Count": str(stitch_count),
             "X-Khayt-Color-Changes": str(color_count),
+            "X-Khayt-Format": format_name.upper(),
         },
     )
 
