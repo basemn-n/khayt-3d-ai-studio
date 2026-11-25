@@ -697,24 +697,62 @@
   "primary_workflows": [
     {
       "id": "FULL_PANEL",
-      "label": "Full fabric panel / full energy panel",
+      "label": "Full energy fabric sheet — embroider first, cut garment pieces afterward",
       "priority": 1,
       "required_inputs": [
-        "panel_width_mm",
-        "panel_height_mm",
-        "stitch_area_width_mm",
-        "stitch_area_height_mm",
+        "fabric_sheet_width_mm",
+        "fabric_sheet_height_mm",
+        "approved_garment_cut_pattern",
+        "piece_layout",
+        "grain_direction",
+        "seam_allowance_mm",
+        "embroidery_clearance_from_cut_lines_mm",
         "placement_origin",
         "fabric_class",
         "operator_confirmed_machine_model",
-        "operator_confirmed_frame"
+        "operator_confirmed_frame",
+        "registration_or_repositioning_plan_if_required"
       ],
-      "machine_guidance": "Prioritize flat-type Tajima machines and compatible border frames for cut fabric before garment assembly. Verify exact model/frame compatibility.",
+      "machine_guidance": "Treat the entire flat fabric sheet as one workpiece. Arrange the approved border, left/right sleeves, back, and front cutting pieces on the same sheet; embroider the planned regions first, then the cutter cuts the pieces. Prefer a verified flat-type machine/frame for cut fabric before garment assembly. Actual frame and field compatibility remain operator-confirmed.",
       "source_urls": [
         "https://www.tajima.support/Manual_machine/%E8%8B%B1%E8%AA%9E/M-EMB-05-EN.pdf",
         "https://www.tajima.com/product/frame/",
         "https://www.tajima.com/product/tmcp-vf/"
-      ]
+      ],
+      "cutting_and_embroidery_rules": {
+        "workflow_order": [
+          "prepare_full_fabric_sheet",
+          "approve_garment_cut_pattern",
+          "nest_border_sleeves_back_front_pieces",
+          "place_embroidery_in_each_piece_region",
+          "review_cut_lines_seam_allowances_and_registration",
+          "export_stitches_and_separate_cut_layout",
+          "embroider_fabric",
+          "cut_pieces",
+          "sew_garment"
+        ],
+        "supported_piece_types": [
+          "border_hem",
+          "sleeve_left",
+          "sleeve_right",
+          "back_panel",
+          "front_left",
+          "front_right",
+          "additional_cutter_defined_piece"
+        ],
+        "geometry_layers": {
+          "embroidery_stitches": "exported_to_DST",
+          "cutting_outlines": "non_stitch_guides_not_exported_to_DST",
+          "registration_guides": "non_stitch_guides_not_exported_to_DST",
+          "seam_allowance_and_no_stitch_zones": "protected_layout_regions_not_exported_to_DST"
+        },
+        "must_not_assume_garment_dimensions": true,
+        "must_not_auto_scale_crop_or_segment_without_approval": true,
+        "must_confirm_left_right_mirroring": true,
+        "must_check_stitch_clearance_from_cut_lines": true,
+        "must_detect_piece_overlap_and_stitch_crossing_between_cut_pieces": true,
+        "cut_plan_approval_required": true
+      }
     },
     {
       "id": "BORDER_HEM",
@@ -794,5 +832,32 @@
         "https://www.tajima.support/Manual_machine/%E8%8B%B1%E8%AA%9E/M-EMB-05-EN.pdf"
       ]
     }
+  },
+  "full_panel_layout_policy": {
+    "workpiece_model": "one_complete_flat_fabric_sheet_before_garment_assembly",
+    "cut_after_embroidery": true,
+    "piece_types": [
+      "border_hem",
+      "sleeve_left",
+      "sleeve_right",
+      "back_panel",
+      "front_left",
+      "front_right",
+      "additional_cutter_defined_piece"
+    ],
+    "required_pattern_source": "cutter_or_tailor_supplied_or_user_approved_pattern",
+    "separate_geometry_layers": [
+      "embroidery_stitches",
+      "cutting_outlines",
+      "registration_guides",
+      "seam_allowance_no_stitch_zones"
+    ],
+    "only_embroidery_stitches_export_to_dst": true,
+    "cutting_layout_report_required": true,
+    "fabric_sheet_dimensions_must_be_user_supplied": true,
+    "seam_allowance_and_embroidery_clearance_must_be_user_or_pattern_supplied": true,
+    "no_automatic_garment_measurement_guessing": true,
+    "no_silent_scale_crop_or_reposition": true,
+    "operator_must_approve_frame_and_registration_strategy": true
   }
 }
