@@ -13,6 +13,87 @@
 .layout-planner-canvas{display:none;width:100%;height:auto;max-width:900px;max-height:100%;aspect-ratio:1/1;background:#fff;border:1px solid var(--line);border-radius:10px;touch-action:none}.layout-planner-help{font-size:11px;color:var(--muted);line-height:1.8}.layout-piece-row{display:flex;justify-content:space-between;gap:8px;padding:7px;border:1px solid var(--line);border-radius:7px;margin-top:6px;cursor:pointer}.layout-piece-row.active{border-color:var(--green);background:var(--mint)}.layout-piece-row small{color:var(--muted)}.layout-planner-fields{display:grid;grid-template-columns:1fr 1fr;gap:7px}.layout-planner-fields .field{margin:0}.layout-planner-fields input,.layout-planner-fields select{width:100%;min-width:0}.layout-piece-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.layout-piece-actions .btn{flex:1}.layout-summary{font-size:11px;line-height:1.8;background:#f6f8f5;padding:9px;border-radius:8px;margin-top:8px}
 
 .border-sim-modal{position:fixed;inset:0;background:#081b12ed;z-index:120;display:none;place-items:stretch;padding:0}.border-sim-modal.open{display:grid}.border-sim-panel{width:100vw;height:100vh;height:100dvh;max-width:none;max-height:none;min-height:0;overflow:hidden;background:#fff;border-radius:0;padding:10px 14px;box-shadow:none;display:flex;flex-direction:column;gap:6px}.border-sim-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;flex:none}.border-sim-canvas{display:block;width:100%;height:100%;min-height:0;max-height:none;aspect-ratio:16/9;object-fit:contain;background:#e9eee9;border:1px solid #d8e0d9;border-radius:10px;margin:0;flex:1 1 0;touch-action:none;cursor:grab}.border-sim-canvas.dragging{cursor:grabbing}.border-sim-controls{display:flex;gap:7px;align-items:center;flex-wrap:wrap;flex:none}.border-sim-controls input[type=range]{flex:1;min-width:130px}.border-sim-note{font-size:11px;color:#58665d;line-height:1.6;background:#f4f8f5;padding:7px 10px;border-radius:9px;flex:none}@media(max-width:700px){.border-sim-panel{padding:7px;gap:5px}.border-sim-canvas{min-height:0}.border-sim-controls{gap:5px}.border-sim-controls .btn{padding:6px 8px;font-size:10px}.border-sim-note{font-size:10px;padding:5px 8px}}
+
+/* Khayt 3D — unified professional studio skin */
+:root{--bg:#f1f4f8;--paper:#fff;--ink:#172033;--muted:#68758a;--line:#dce3ec;--green:#2563eb;--mint:#eaf1ff;--dark:#111827;--gold:#b78a45;--red:#c2413b}
+html{background:var(--bg)}
+body{background:var(--bg);color:var(--ink);font-family:"Segoe UI",Tahoma,Arial,sans-serif;font-size:13px}
+.app{grid-template-rows:68px minmax(0,1fr) 34px;min-height:100vh}
+.top{position:sticky;top:0;z-index:30;height:68px;padding:0 22px;gap:18px;background:#fff;border-bottom:1px solid #e3e8ef;box-shadow:0 2px 10px #17203308}
+.brand{gap:12px;min-width:190px;color:#111827;font-size:15px;letter-spacing:.1px}
+.logo{width:40px;height:40px;border-radius:12px;background:linear-gradient(145deg,#2563eb,#1746a2);box-shadow:0 5px 14px #2563eb30;font-size:21px}
+.brand small{color:#7b8798;font-size:10px;margin-top:4px}
+.project-name{width:190px;border:1px solid #dce3ec;border-radius:10px;background:#f8fafc;padding:9px 12px;color:#334155}
+.top-actions{gap:6px;align-items:center;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:thin}
+.btn{border:1px solid #dce3ec;background:#fff;border-radius:9px;padding:8px 12px;color:#344054;font-size:11px;font-weight:600;transition:background .15s,border-color .15s,transform .15s;white-space:nowrap}
+.btn:hover{border-color:#9db7e9;background:#f5f8ff}
+.btn:active{transform:translateY(1px)}
+.btn.primary,.ai-launch{background:#2563eb!important;border-color:#2563eb!important;color:#fff!important;box-shadow:0 3px 9px #2563eb20}
+.btn.primary:hover,.ai-launch:hover{background:#1d4ed8!important}
+.btn.danger{color:#b42318}
+.layout{grid-template-columns:248px minmax(460px,1fr);min-height:calc(100vh - 102px);background:var(--bg)}
+.nav{grid-column:1;grid-row:1;background:#111827;border:0;padding:20px 13px;box-shadow:inset -1px 0 #ffffff0b}
+.nav-title{color:#94a3b8;font-size:10px;letter-spacing:.7px;padding:5px 11px 15px}
+.step{position:relative;gap:11px;padding:11px 12px;margin-bottom:5px;border:1px solid transparent;border-radius:10px;color:#cbd5e1;font-size:12px;line-height:1.5;transition:.15s}
+.step:hover{background:#ffffff0c;color:#fff}
+.step .num{width:27px;height:27px;border-radius:8px;background:#263244;color:#cbd5e1;font-size:11px}
+.step.active{background:#1e3a68;border-color:#315b9b;color:#fff;box-shadow:inset -3px 0 #60a5fa}
+.step.active .num{background:#3b82f6;color:#fff}
+.step.done .num{background:#164e3b;color:#86efac}
+.center{min-width:0;background:var(--bg)}
+.stage-head{padding:20px 24px 15px;min-height:86px}
+.stage-head h1{font-size:20px;font-weight:750;letter-spacing:-.3px;color:#172033;margin-bottom:6px}
+.stage-head p{font-size:11px;color:#778399}
+.stage-actions{gap:8px}
+.workarea{grid-template-columns:minmax(0,1fr) 292px;gap:14px;padding:0 20px 20px}
+.canvas-card,.props{border:1px solid #e0e6ee;border-radius:14px;box-shadow:0 4px 18px #17203308;background:#fff}
+.canvas-card{min-height:560px}
+.canvas-toolbar{padding:9px 11px;gap:6px;background:#fbfcfe;border-color:#e8edf3}
+.canvas-toolbar .btn{padding:7px 10px;font-size:10px}
+.canvas-toolbar .tool{border-radius:8px}
+.canvas-toolbar .tool.active{background:#eaf1ff;border-color:#9bbaf2;color:#1d4ed8}
+.canvas-wrap{background-color:#edf1f6;background-image:radial-gradient(#cbd5e1 0.7px,transparent .7px);background-size:18px 18px;padding:18px}
+.canvas-wrap canvas{border:1px solid #e1e7ef;border-radius:7px;box-shadow:0 8px 28px #17203312}
+.canvas-hint{bottom:18px;right:18px;background:#fff;border:1px solid #e2e8f0;box-shadow:0 3px 12px #1720330c;color:#526078;border-radius:8px}
+.canvas-footer{padding:11px 15px;border-color:#e8edf3;color:#7b8798;gap:20px}
+.canvas-footer b{color:#263449;font-weight:700}
+.pill{background:#edf3ff;color:#2855a5;font-weight:700}
+.props{padding:16px;min-height:560px}
+.props h3{font-size:13px;color:#1f2937;font-weight:750;margin-bottom:15px}
+.group{border-color:#edf0f4;padding-bottom:15px;margin-bottom:15px}
+.group-title{font-size:11px;color:#526078;font-weight:750;margin-bottom:11px}
+.field label{color:#66748a}
+.field input:not([type=checkbox]):not([type=range]),.field select{border-color:#dce3ec;border-radius:8px;padding:9px;color:#344054;background:#fff}
+.field input:focus,.field select:focus,.project-name:focus{outline:2px solid #bfdbfe;border-color:#60a5fa}
+.field input[type=range],.check input{accent-color:#2563eb}
+.check{color:#526078}
+.hint{background:#f4f7fb;color:#68758a;border:1px solid #e8edf4;border-radius:9px}
+.object-row{border-color:#e5eaf1;border-radius:8px;padding:8px;color:#344054}
+.object-row:hover{background:#f8faff;border-color:#b9cdf2}
+.object-row.active{border-color:#8bb2f4;background:#edf4ff;color:#1d4ed8}
+.swatch{outline-color:#d5dde8}
+.swatch.active{outline-color:#2563eb}
+.bottom{background:#fff;border-color:#e3e8ef;color:#8290a3;padding:0 22px}
+.bottom strong{color:#2563eb}
+.toast{background:#172033;border:1px solid #334155;box-shadow:0 8px 24px #0002}
+.modal-box,.ai-panel{border:1px solid #e3e8ef;border-radius:16px;box-shadow:0 22px 70px #10182830}
+.ai-head h2{color:#172033}
+.ai-sub,.ai-small{color:#718096}
+.ai-prompt{border-color:#dce3ec;border-radius:10px}
+.ai-file{background:#f7f9fc;border-color:#9bb6e8}
+.ai-status{background:#f1f5f9;color:#475569}
+.ai-status.ok{background:#ecfdf3;color:#067647}
+.ai-status.error{background:#fff1f0;color:#b42318}
+.layout-piece-row{border-color:#e1e7ef;border-radius:9px}
+.layout-piece-row.active{border-color:#7ba7ed;background:#edf4ff}
+.layout-summary{background:#f4f7fb;border:1px solid #e8edf4;border-radius:9px}
+.border-sim-panel{background:#f8fafc}
+.border-sim-canvas{background:#edf1f6;border-color:#dce3ec;border-radius:12px}
+.border-sim-note{background:#f1f5f9;color:#526078}
+@media(max-width:1250px){.top{padding:0 14px;gap:10px}.brand{min-width:155px}.project-name{width:150px}.top-actions .btn{padding:7px 9px;font-size:10px}.layout{grid-template-columns:218px minmax(390px,1fr)}.workarea{grid-template-columns:minmax(0,1fr) 270px;padding-left:14px;padding-right:14px}}
+@media(max-width:1050px){.layout{grid-template-columns:190px minmax(0,1fr)}.workarea{grid-template-columns:1fr}.props{grid-column:auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;min-height:0}.props>h3{grid-column:1/-1}.canvas-card{min-height:520px}}
+@media(max-width:760px){.app{display:block}.top{position:relative;height:auto;min-height:64px;flex-wrap:wrap;padding:10px 12px}.brand{min-width:0;flex:1}.project-name{width:145px}.top-actions{width:100%;margin:0;padding-bottom:2px}.layout{display:flex;flex-direction:column}.nav{display:flex;overflow-x:auto;padding:8px;background:#111827;border:0}.nav-title{display:none}.step{min-width:145px;margin:0 3px}.stage-head{padding:14px 12px}.stage-head h1{font-size:17px}.workarea{padding:0 9px 12px;gap:10px}.canvas-card{min-height:440px}.canvas-toolbar{overflow-x:auto;flex-wrap:nowrap}.canvas-toolbar .btn{flex:none}.props{display:block;padding:13px;min-height:0}.bottom{min-height:34px;overflow-x:auto;white-space:nowrap}.canvas-wrap{padding:9px}}
+
 </style></head>
 <body><div class="app">
 <header class="top"><div class="brand"><div class="logo">✳</div><div>خيط 3D<small>استوديو تصميم التطريز الاحترافي</small></div></div><input id="projectName" class="project-name" value="تصميم جديد" aria-label="اسم المشروع"><div class="top-actions"><button class="btn ai-launch" id="openAI">✦ صمّم بالذكاء الاصطناعي</button><button class="btn" id="newProject">＋ جديد</button><button class="btn" id="samaiLogoBtn">✿ إنشاء شعار السامعي</button><button class="btn" id="repairSamaiTextBtn">تحسين كتابة السامعي</button><button class="btn" id="repairSamaiShapesBtn">إصلاح أشكال الشعار</button><label class="btn" id="openProject" style="position:relative;overflow:hidden">فتح<input id="projectFile" type="file" accept=".json,application/json" aria-label="اختر ملف المشروع" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer"></label><button class="btn" id="saveProject">حفظ المشروع</button><button class="btn primary" id="exportDST">تصدير DST</button></div></header>
