@@ -575,6 +575,75 @@ def standard_tulip_geometry() -> dict[str, Any]:
     return {"summary": "توليب مرسوم ببتلات منحنية وناعمة، وورقتين طبيعيتين وساق ساتان. هذه هندسة جاهزة للمعاينة والتعديل.", "objects": objects}
 
 
+def offline_geometric_rosette_design() -> dict[str, Any]:
+    """Build an editable oriental eight-petal embroidery motif without any AI provider."""
+    def ellipse(cx: float, cy: float, rx: float, ry: float, count: int = 20, rotation: float = 0):
+        a = math.radians(rotation)
+        points = []
+        for i in range(count):
+            t = 2 * math.pi * i / count
+            x, y = rx * math.cos(t), ry * math.sin(t)
+            points.append({
+                "x": round(max(.02, min(.98, cx + x * math.cos(a) - y * math.sin(a))), 6),
+                "y": round(max(.02, min(.98, cy + x * math.sin(a) + y * math.cos(a))), 6),
+                "curve": True,
+            })
+        return points
+
+    objects: list[dict[str, Any]] = []
+    colors = ["#B88732", "#9D263B", "#287A4B", "#F1D58A"]
+    # Eight individually editable petals, rotated around a shared center.
+    for i in range(8):
+        angle = -90 + i * 45
+        rad = math.radians(angle)
+        objects.append({
+            "name": f"بتلة هندسية {i + 1}", "type": "tatami",
+            "points": ellipse(.5 + .125 * math.cos(rad), .47 + .125 * math.sin(rad), .068, .125, 24, angle - 90),
+            "closed": True, "color": colors[1 if i % 2 == 0 else 0],
+            "fill": "tatami", "spacing": .42, "stitch_length": 3.0, "angle": 45 if i % 2 == 0 else -45,
+        })
+    # Eight narrow leaves form a second ornamental ring between the petals and edge.
+    for i in range(8):
+        angle = -67.5 + i * 45
+        rad = math.radians(angle)
+        objects.append({
+            "name": f"ورقة زخرفية {i + 1}", "type": "tatami",
+            "points": ellipse(.5 + .255 * math.cos(rad), .47 + .255 * math.sin(rad), .067, .027, 20, angle),
+            "closed": True, "color": colors[2], "fill": "tatami",
+            "spacing": .42, "stitch_length": 2.8, "angle": angle,
+        })
+    objects.append({
+        "name": "قلب الزهرة", "type": "tatami",
+        "points": ellipse(.5, .47, .064, .064, 24), "closed": True,
+        "color": colors[3], "fill": "tatami", "spacing": .38, "stitch_length": 2.5,
+    })
+    for i, angle in enumerate([0, 90, 180, 270]):
+        rad = math.radians(angle)
+        objects.append({
+            "name": f"نقطة إطار {i + 1}", "type": "tatami",
+            "points": ellipse(.5 + .345 * math.cos(rad), .47 + .345 * math.sin(rad), .025, .025, 16),
+            "closed": True, "color": colors[0], "fill": "tatami", "spacing": .4,
+        })
+    return {
+        "summary": "نقش زهرة شرقية هندسية متناظرة بثماني بتلات، وثماني أوراق زخرفية، وقلب مركزي ولمسات إطار. أُنشئ محلياً دون اتصال بأي خدمة ذكاء اصطناعي، وجميع أجزائه قابلة للتحرير.",
+        "objects": objects,
+    }
+
+
+def offline_design_for_prompt(prompt: str) -> dict[str, Any]:
+    """Safe local fallback when a hosted text model is temporarily rate-limited."""
+    if re.search(r"(توليب|tulip)", prompt, re.IGNORECASE):
+        return standard_tulip_geometry()
+    # A deterministic ornamental motif is preferable to blocking all text design work.
+    result = offline_geometric_rosette_design()
+    result["summary"] = (
+        "تعذر الوصول إلى نموذج الذكاء الاصطناعي بسبب حد الاستخدام؛ لذلك أنشأ البرنامج "
+        "نقشاً زخرفياً هندسياً محلياً قابلاً للتحرير كبديل مؤقت. قد يحتاج إلى تعديل ليتطابق "
+        "تماماً مع وصفك الأصلي."
+    )
+    return result
+
+
 @app.get("/")
 async def root() -> dict[str, Any]:
     return {
@@ -805,6 +874,14 @@ async def create_design(
         normalized["generation_mode"] = "template"
         return normalized
 
+    # Common ornamental requests are generated locally: they never consume daily AI quota.
+    if image is None and re.search(r"(زهرة هندسية|نقش هندسي|زخرف|شرقي|ثماني البتلات|ثمانية بتلات|mandala|rosette|medallion|geometric flower)", prompt, re.IGNORECASE):
+        normalized = normalize_design(offline_geometric_rosette_design(), width_mm, height_mm)
+        normalized["model"] = "Khayt offline geometric generator"
+        normalized["provider"] = "Khayt built-in geometry"
+        normalized["generation_mode"] = "offline_template"
+        return normalized
+
     client = None if AI_PROVIDER == "cloudflare" else get_client()
     instructions = f"""
 أنت مهندس تصميم تطريز آلي. حوّل طلب المستخدم إلى مخطط هندسي ثنائي الأبعاد قابل للتحرير والتحويل إلى غرز.
@@ -925,15 +1002,25 @@ objects مصفوفة من 3 إلى 18 كائناً. كل كائن يحتوي nam
                     raise HTTPException(status_code=502, detail="لم يتمكن نموذج الرؤية من تحليل الصورة المرجعية.")
                 generation_prompt += "\\nوصف الصورة المرجعية بعد تحليلها: " + image_description
 
-            result = await cloudflare_run(CF_TEXT_MODEL, {
-                "messages": [
-                    {"role": "system", "content": instructions + "\nأعد JSON صالحاً فقط دون Markdown أو شرح خارج JSON."},
-                    {"role": "user", "content": generation_prompt},
-                ],
-                "response_format": {"type": "json_schema", "json_schema": geometry_schema},
-                "max_tokens": 6000,
-                "temperature": 0.15,
-            })
+            try:
+                result = await cloudflare_run(CF_TEXT_MODEL, {
+                    "messages": [
+                        {"role": "system", "content": instructions + "\nأعد JSON صالحاً فقط دون Markdown أو شرح خارج JSON."},
+                        {"role": "user", "content": generation_prompt},
+                    ],
+                    "response_format": {"type": "json_schema", "json_schema": geometry_schema},
+                    "max_tokens": 6000,
+                    "temperature": 0.15,
+                })
+            except HTTPException as provider_error:
+                if provider_error.status_code == 429 and image is None:
+                    logger.warning("Cloudflare AI quota exhausted; using local editable geometry fallback.")
+                    normalized = normalize_design(offline_design_for_prompt(prompt), width_mm, height_mm)
+                    normalized["model"] = "Khayt offline fallback"
+                    normalized["provider"] = "Khayt built-in geometry"
+                    normalized["generation_mode"] = "offline_fallback"
+                    return normalized
+                raise
             raw = extract_model_text(result)
             payload = repair_geometry_payload(parse_model_json(raw))
 
