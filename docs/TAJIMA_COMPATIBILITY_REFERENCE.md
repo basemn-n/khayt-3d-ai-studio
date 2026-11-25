@@ -82,6 +82,44 @@ Khayt 3D's primary production target is embroidery on **abaya/coat panels and la
 - **Sleeves / hand sections:** treat as a separate placement job. The design file should retain an origin/center reference and mirrored variant where needed; frame compatibility and clearance must be checked for the exact machine.
 - **Full panel coverage:** artwork dimensions must be captured in mm from the actual cut piece or approved pattern. The machine's nominal field is not the garment size. If the artwork exceeds the available field, Khayt 3D must flag it and offer manual panel segmentation only after the operator confirms the frame, repositioning method, and registration marks.
 
+
+### Full-energy fabric-first cutting layout (confirmed production workflow)
+
+The primary workflow is **embroider the complete flat fabric piece first, then cut the garment pieces from that embroidered fabric**. The incoming fabric is treated as one shared workpiece, not as separate already-cut sleeves/front/back parts.
+
+The layout planner must support a coordinated cut plan on the same fabric sheet, with independently placeable garment-piece regions such as:
+
+- the long border/hem band;
+- left and right sleeve/hand pieces (paired and mirrored where the pattern requires);
+- back panel;
+- left and right front panels;
+- any additional pieces explicitly included by the tailor/cutter.
+
+The operator or cutter supplies/approves the actual garment pattern, piece dimensions, grain direction, seam allowances, and placement. Khayt 3D must not invent garment measurements or assume a universal abaya pattern.
+
+**Required separation of geometry layers:**
+
+1. **Stitch artwork:** the actual embroidery paths and stitch objects.
+2. **Cutting outlines:** non-stitch guides showing where the cutter will cut each piece after embroidery.
+3. **Placement/registration guides:** non-stitch marks or references used to align the fabric and repeat/segment work.
+4. **No-stitch / seam allowance zones:** protected areas where embroidery must be kept clear unless the user explicitly overrides them.
+
+Cutting outlines and registration guides must never be exported as embroidery stitches. They must remain visible in the layout preview and in a separate cutting/layout report. The stitch export contains only embroidery objects.
+
+The layout planner must:
+- place all garment pieces on the same fabric sheet and show the remaining usable fabric;
+- allow the border to be embroidered as a continuous or repeated strip, with explicit start/end margins and approved joins;
+- keep embroidery inside the approved region of each cut piece and away from cut lines/seam allowances by the user-specified clearance;
+- prevent unintended stitch artwork from crossing between two pieces that will later be cut apart;
+- preserve grain direction and orientation, and flag mirrored left/right pieces for explicit confirmation;
+- show piece labels, dimensions, rotation, placement coordinates, and the overall fabric-sheet dimensions;
+- detect overlap between cut pieces, cutting paths, and stitch artwork, and warn before export;
+- support a manual cutter-approved layout rather than automatically claiming an optimal fabric nest.
+
+**Production sequence:** (1) enter actual fabric-sheet dimensions; (2) import or draw/approve the garment cutting pattern; (3) arrange the border, sleeves, back, and front pieces; (4) place embroidery within each piece/strip; (5) review cut lines, seam allowances, joins, and registration; (6) export the stitch file plus a separate cutting/layout sheet; (7) embroider the fabric; (8) cut the pieces and sew the garment.
+
+The workshop still chooses the physical frame and machine setup. If the whole sheet or a region exceeds the verified field of the actual machine/frame, the software must flag it and require an operator-approved repositioning/registration plan; it must not silently split, scale, or crop the artwork.
+
 ### Production presets in the UI
 
 Add named workflow choices, not invented stitch recipes:
