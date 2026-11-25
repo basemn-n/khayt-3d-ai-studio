@@ -609,6 +609,15 @@ async def create_design(
     if not prompt and image is None:
         raise HTTPException(status_code=400, detail="اكتب وصف التصميم أو أرفق صورة مرجعية.")
 
+    # A tulip has a deterministic, editable Bézier template. Do not spend provider quota
+    # on an LLM response that would be replaced by this exact geometry anyway.
+    if image is None and re.search(r"(توليب|tulip)", prompt, re.IGNORECASE):
+        normalized = normalize_design(standard_tulip_geometry(), width_mm, height_mm)
+        normalized["model"] = "قالب توليب هندسي منحني"
+        normalized["provider"] = "Khayt built-in geometry"
+        normalized["generation_mode"] = "template"
+        return normalized
+
     client = None if AI_PROVIDER == "cloudflare" else get_client()
     instructions = f"""
 أنت مهندس تصميم تطريز آلي. حوّل طلب المستخدم إلى مخطط هندسي ثنائي الأبعاد قابل للتحرير والتحويل إلى غرز.
