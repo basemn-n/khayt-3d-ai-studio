@@ -12,7 +12,7 @@
 .ai-launch{background:#173f2e!important;color:#fff!important;border-color:#173f2e!important;font-weight:700}.ai-modal{position:fixed;inset:0;background:#10251b99;z-index:100;display:none;place-items:center;padding:18px}.ai-modal.open{display:grid}.ai-panel{width:min(760px,96vw);max-height:92vh;overflow:auto;background:#fff;border-radius:18px;box-shadow:0 24px 90px #0004;padding:22px}.ai-head{display:flex;justify-content:space-between;align-items:center;gap:12px}.ai-head h2{margin:0;font-size:20px}.ai-sub{color:#68756c;font-size:12px;line-height:1.8}.ai-prompt{width:100%;min-height:120px;border:1px solid #d8e0d9;border-radius:12px;padding:12px;font:14px Tahoma;resize:vertical}.ai-actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.ai-file{border:1px dashed #9eb6a5;border-radius:12px;padding:12px;background:#f7faf7}.ai-status{padding:12px;border-radius:10px;background:#f1f5f2;color:#425248;font-size:12px;line-height:1.8;white-space:pre-wrap}.ai-status.error{background:#fff0ee;color:#963d34}.ai-status.ok{background:#eaf6ee;color:#176447}.ai-consent{font-size:11px;color:#68756c;line-height:1.7}.ai-preview{display:none;margin-top:12px;padding:12px;border:1px solid #d8e0d9;border-radius:10px}.ai-preview.show{display:block}.ai-preview ul{margin:8px 0;padding-right:20px;font-size:12px}.ai-preview-canvas{display:block;width:100%;max-height:360px;margin:10px 0;border:1px solid #d8e0d9;border-radius:8px;background:#f7f5ee}.ai-small{font-size:11px;color:#68756c}.ai-recording{background:#a83f35!important;color:#fff!important}
 </style></head>
 <body><div class="app">
-<header class="top"><div class="brand"><div class="logo">✳</div><div>خيط 3D<small>استوديو تصميم التطريز الاحترافي</small></div></div><input id="projectName" class="project-name" value="تصميم جديد" aria-label="اسم المشروع"><div class="top-actions"><button class="btn ai-launch" id="openAI">✦ صمّم بالذكاء الاصطناعي</button><button class="btn" id="newProject">＋ جديد</button><button class="btn" id="samaiLogoBtn">✿ إنشاء شعار السامعي</button><button class="btn" id="repairSamaiTextBtn">تحسين كتابة السامعي</button><label class="btn" id="openProject" style="position:relative;overflow:hidden">فتح<input id="projectFile" type="file" accept=".json,application/json" aria-label="اختر ملف المشروع" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer"></label><button class="btn" id="saveProject">حفظ المشروع</button><button class="btn primary" id="exportDST">تصدير DST</button></div></header>
+<header class="top"><div class="brand"><div class="logo">✳</div><div>خيط 3D<small>استوديو تصميم التطريز الاحترافي</small></div></div><input id="projectName" class="project-name" value="تصميم جديد" aria-label="اسم المشروع"><div class="top-actions"><button class="btn ai-launch" id="openAI">✦ صمّم بالذكاء الاصطناعي</button><button class="btn" id="newProject">＋ جديد</button><button class="btn" id="samaiLogoBtn">✿ إنشاء شعار السامعي</button><button class="btn" id="repairSamaiTextBtn">تحسين كتابة السامعي</button><button class="btn" id="repairSamaiShapesBtn">إصلاح أشكال الشعار</button><label class="btn" id="openProject" style="position:relative;overflow:hidden">فتح<input id="projectFile" type="file" accept=".json,application/json" aria-label="اختر ملف المشروع" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer"></label><button class="btn" id="saveProject">حفظ المشروع</button><button class="btn primary" id="exportDST">تصدير DST</button></div></header>
 <div class="layout"><nav class="nav"><div class="nav-title">مراحل العمل — من البداية إلى الإنتاج</div><button class="step active" data-step="0"><span class="num">1</span> إعداد المشروع والقماش</button><button class="step" data-step="1"><span class="num">2</span> استيراد الصورة وتجهيزها</button><button class="step" data-step="2"><span class="num">3</span> رسم الأشكال والمسارات</button><button class="step" data-step="3"><span class="num">4</span> التعبئة المعقدة والحصير</button><button class="step" data-step="4"><span class="num">5</span> مدخلات A / B / C والساتان</button><button class="step" data-step="5"><span class="num">6</span> الخطوط والزخارف</button><button class="step" data-step="6"><span class="num">7</span> الأبليك ثلاثي المراحل</button><button class="step" data-step="7"><span class="num">8</span> محاكاة الغرز والمراجعة</button><button class="step" data-step="8"><span class="num">9</span> التصدير والإنتاج</button></nav>
 <main class="center"><div class="stage-head"><div><h1 id="stageTitle">إعداد المشروع والقماش</h1><p id="stageDesc">حدد مساحة العمل والخامة قبل البدء في رسم التصميم.</p></div><div class="stage-actions"><button class="btn" id="prevStep">السابق</button><button class="btn primary" id="nextStep">التالي ←</button></div></div>
 <div class="workarea"><section class="canvas-card"><div class="canvas-toolbar"><button class="btn tool active" data-tool="select">↖ تحديد</button><button class="btn tool" data-tool="nodes">⌖ تحرير النقاط</button><button class="btn tool" data-tool="fusion">✧ Fusion Fill</button><button class="btn tool" data-tool="complex">▧ تعبئة معقدة</button><button class="btn tool" data-tool="inputA">A مدخلات A</button><button class="btn tool" data-tool="inputB">B مدخلات B</button><button class="btn tool" data-tool="inputC">C مدخلات C</button><button class="btn tool" data-tool="run">〰 تشغيل</button><button class="btn tool" data-tool="triple">≋ درز ثلاثي</button><button class="btn tool" data-tool="motifLine">✿ خط زخرفي</button><button class="btn tool" data-tool="backstitch">⁝ زجزاج رفيع</button><button class="btn tool" data-tool="satinWide">▰ زجزاج عريض</button><button class="btn tool" data-tool="applique">◈ أبليك</button><button class="btn tool" data-tool="circle">○ دائرة</button><button class="btn tool" data-tool="star">☆ نجمة</button><button class="btn tool" data-tool="ring">◎ حلقة</button><button class="btn tool" data-tool="erase">⌫ حذف</button></div><div class="canvas-toolbar" style="border-top:1px solid var(--line)"><button class="btn" id="undoBtn" title="Ctrl+Z">↶ تراجع</button><button class="btn" id="redoBtn" title="Ctrl+Y">↷ إعادة</button><button class="btn" id="duplicateBtn">نسخ الكائن</button><button class="btn" id="mirrorXBtn">عكس أفقي</button><button class="btn" id="mirrorYBtn">عكس رأسي</button><button class="btn" id="rotateBtn">دوران 15°</button><button class="btn" id="raiseBtn">للأمام ↑</button><button class="btn" id="lowerBtn">للخلف ↓</button><button class="btn danger" id="deleteBtn">حذف المحدد</button></div><div class="canvas-wrap"><canvas id="board" width="900" height="900"></canvas><div class="canvas-hint" id="canvasHint">انقر يساراً لنقطة مستقيمة، ويميناً لنقطة منحنية، ثم Enter لإنهاء الرسم</div></div><div class="canvas-footer"><span>العرض: <b id="fabricSize">300 × 300 مم</b></span><span>الكائنات: <b id="objectCount">0</b></span><span>الغرز المقدرة: <b id="stitchCount">0</b></span><span class="pill" id="viewMode">عرض التصميم</span></div></section>
@@ -206,6 +206,66 @@ function repairSamaiText(){
  toast('أُعيد بناء اسم السامعي كحروف تطريز فعلية — '+count.toLocaleString('ar')+' غرزة تقريبية. راجع وضوحه قبل التصدير.');
 }
 $('repairSamaiTextBtn').onclick=repairSamaiText;
+function repairSamaiShapes(){
+ const textObjects=S.objects.filter(o=>o.tool==='textFill'||o.text==='السامعي'||/اسم السامعي/.test(o.name||''));
+ if(!textObjects.length){toast('لم أجد طبقة الاسم؛ لم أغيّر التصميم.');return}
+ remember();
+ const keep=textObjects[0],oldCount=S.objects.length;
+ const opt={...currentOpts(),fill:'tatami',spacing:.55,len:2.8,max:5,angle:25,underlay:true,underlayType:'edge'};
+ const red='#a51d3b',red2='#c52e4d',gold='#c79a38',dark='#5e2430',green='#28734e',cream='#f4f0e8';
+ const ellipse=(cx,cy,rx,ry,n=24,rot=0)=>Array.from({length:n},(_,i)=>{const a=2*Math.PI*i/n+rot;return{x:cx+Math.cos(a)*rx,y:cy+Math.sin(a)*ry}});
+ const shape=(name,pts,color,extra={})=>({name,tool:'fusion',points:pts,closed:true,curved:false,color,opts:{...opt,...extra},stitches:[]});
+ const line=(name,pts,color,width=1.4)=>({name,tool:'satinWide',points:pts,closed:false,curved:false,color,opts:{...opt,lineW:width,len:2.2,spacing:.45},stitches:[]});
+ const parts=[];
+ // A clear, filled crown silhouette with a distinct base and jewels.
+ parts.push(shape('التاج — جسم ذهبي واضح',[
+  {x:116,y:70},{x:108,y:43},{x:128,y:57},{x:150,y:29},{x:172,y:57},{x:192,y:43},{x:184,y:70}
+ ],gold));
+ parts.push(shape('قاعدة التاج الذهبية', [{x:112,y:70},{x:188,y:70},{x:183,y:81},{x:117,y:81}],dark));
+ [128,150,172].forEach((x,i)=>parts.push(shape('جوهرة التاج '+(i+1),ellipse(x,i===1?48:57,3.4,4.4,16),i===1?red:'#f3d58a')));
+ // Machine silhouette: long arm, upright pillar, open throat and broad base.
+ parts.push(shape('جسم ماكينة الخياطة — كتلة حمراء',[
+  {x:83,y:153},{x:83,y:143},{x:97,y:139},{x:97,y:105},{x:103,y:91},
+  {x:115,y:84},{x:178,y:84},{x:190,y:91},{x:195,y:104},
+  {x:195,y:145},{x:207,y:145},{x:207,y:160},{x:83,y:160},
+  {x:83,y:153}
+ ],red));
+ parts.push(shape('ذراع الماكينة العلوي',[
+  {x:101,y:88},{x:177,y:88},{x:187,y:95},{x:187,y:108},{x:101,y:108}
+ ],red2));
+ // Open throat is intentionally left as fabric; needle and presser foot define the sewing area.
+ parts.push(line('مسار فتحة الماكينة', [{x:112,y:111},{x:145,y:111},{x:158,y:118},{x:158,y:140}],dark,1.8));
+ parts.push(line('عمود الإبرة', [{x:111,y:104},{x:111,y:136}],gold,1.5));
+ parts.push(line('الإبرة', [{x:111,y:132},{x:111,y:147}],dark,1.1));
+ parts.push(line('قدم ضاغط القماش', [{x:105,y:148},{x:119,y:148},{x:122,y:151}],gold,2));
+ parts.push(shape('قاعدة ماكينة التطريز', [{x:76,y:160},{x:214,y:160},{x:214,y:171},{x:76,y:171}],dark));
+ parts.push(shape('سطح القماش', [{x:119,y:151},{x:164,y:151},{x:164,y:157},{x:119,y:157}],gold));
+ parts.push(shape('عجلة الماكينة',ellipse(183,126,12,12,28),gold));
+ parts.push(shape('مركز العجلة',ellipse(183,126,4,4,18),dark));
+ parts.push(shape('بكرة الخيط',ellipse(122,78,5,10,20),gold));
+ parts.push(line('خيط البكرة', [{x:122,y:68},{x:122,y:61},{x:137,y:61},{x:137,y:85}],gold,1.2));
+ // Five-petal flowers with visible centers, plus leaves.
+ const flower=(cx,cy,scale,label)=>{
+  for(let k=0;k<5;k++){const a=-Math.PI/2+k*2*Math.PI/5;parts.push(shape(label+' — بتلة '+(k+1),ellipse(cx+Math.cos(a)*5.5*scale,cy+Math.sin(a)*5.5*scale,4.2*scale,7*scale,20,a+Math.PI/2),red2))}
+  parts.push(shape(label+' — قلب الزهرة',ellipse(cx,cy,3.2*scale,3.2*scale,18),gold));
+ };
+ flower(70,119,.9,'وردة يسار');flower(230,119,.9,'وردة يمين');
+ parts.push(shape('ورقة يسار',ellipse(77,145,4,10,18,-.6),green));
+ parts.push(shape('ورقة يمين',ellipse(223,145,4,10,18,.6),green));
+ parts.push(line('غصن زخرفي يسار',[{x:77,y:151},{x:87,y:160},{x:98,y:162}],green,1.4));
+ parts.push(line('غصن زخرفي يمين',[{x:223,y:151},{x:213,y:160},{x:202,y:162}],green,1.4));
+ // Replace only illustration layers; preserve the user's readable Arabic lettering object.
+ const textIndex=S.objects.findIndex(o=>o===keep);
+ S.objects=S.objects.filter(o=>o===keep);
+ S.objects.push(...parts);
+ S.objects.push(keep);
+ S.selected=S.objects.length-1;
+ S.view='design';recalc();setStep(7);persistDraft();
+ $('projectName').value='شعار السامعي للتطريز';
+ toast('أعدنا رسم الماكينة والتاج والورود بأشكال تطريز ممتلئة وتفاصيل واضحة، وحافظنا على الاسم.');
+}
+$('repairSamaiShapesBtn').onclick=repairSamaiShapes;
+
 
 
 function finishDrawing(){if(S.awaitDirection){if(S.points.length<2){toast('حدد اتجاه الغرز بنقطتين');return}let a=S.points[0],b=S.points[S.points.length-1],ang=Math.atan2(b.y-a.y,b.x-a.x)*180/Math.PI;$('angle').value=Math.round(ang);S.shapeDraft.opts=currentOpts();S.shapeDraft.opts.angle=ang;let draft=S.shapeDraft;S.awaitDirection=false;S.shapeDraft=null;addObject(draft.points,'inputB',true,draft.curved);return}if(S.points.length<2)return;let t=S.tool,closed=['fusion','complex','inputB','circle','star','ring','applique'].includes(t);if(t==='inputA'&&S.points.length%2!==0){toast('مدخلات A تتطلب نقاطاً متقابلة بعدد زوجي');return}if(t==='inputB'){S.shapeDraft={points:S.points.map(p=>({...p})),curved:S.points.some(p=>p.curve),opts:currentOpts()};S.points=[];S.awaitDirection=true;toast('الآن ارسم خط اتجاه الغرز بنقطتين ثم اضغط Enter');$('canvasHint').textContent='ارسم اتجاه الغرز: نقطة البداية ثم نقطة النهاية، ثم Enter';draw();return}addObject(S.points,t,closed,S.points.some(p=>p.curve));}
