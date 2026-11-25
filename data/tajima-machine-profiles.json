@@ -1,0 +1,697 @@
+{
+  "schema_version": "1.0.0",
+  "reference_revision": "2026-11-25",
+  "authority_policy": "Official Tajima product pages, official Tajima brochures/manuals, and official Tajima DG/Pulse documentation only. Missing values remain null.",
+  "dimensions_convention": "Preserve manufacturer labels. D means depth and W means width where explicitly stated. Do not swap axes or treat maximum field as safe usable area.",
+  "profiles": [
+    {
+      "family": "SAI",
+      "machine_type": "single_head_compact",
+      "needles": [
+        8
+      ],
+      "heads": [
+        1
+      ],
+      "embroidery_field_mm": {
+        "depth": 200,
+        "width": 300,
+        "status": "verified"
+      },
+      "frames": [
+        {
+          "type": "large_tubular",
+          "embroidery_area_mm": {
+            "depth": 200,
+            "width": 300
+          },
+          "status": "verified"
+        },
+        {
+          "type": "small_tubular",
+          "embroidery_area_mm": {
+            "depth": 100,
+            "width": 100
+          },
+          "status": "verified"
+        }
+      ],
+      "source_urls": [
+        "https://www.tajima.com/product/sai/",
+        "https://www.tajima.com/wp-content/uploads/2025/06/SAI_EN_PDF_2506.pdf"
+      ],
+      "notes": "Other optional frames are listed by Tajima; exact sizes/compatibility require the applicable official frame table."
+    },
+    {
+      "family": "TMBP2-SC",
+      "machine_type": "single_head_cylinder",
+      "needles": [
+        6,
+        12,
+        15
+      ],
+      "heads": [
+        1
+      ],
+      "embroidery_field_mm": {
+        "depth": 360,
+        "width": 500,
+        "status": "verified"
+      },
+      "frames": [
+        {
+          "type": "tubular",
+          "embroidery_area_mm": {
+            "depth": 360,
+            "width": 500
+          },
+          "status": "verified"
+        },
+        {
+          "type": "wide_cap",
+          "embroidery_area_mm": {
+            "depth": 75,
+            "width": 360
+          },
+          "status": "verified"
+        },
+        {
+          "type": "semi_wide_cap",
+          "embroidery_area_mm": {
+            "depth": 83,
+            "width": 180
+          },
+          "status": "verified"
+        },
+        {
+          "type": "pocket",
+          "embroidery_area_mm": {
+            "depth": 45,
+            "width": 80
+          },
+          "status": "verified"
+        },
+        {
+          "type": "pocket",
+          "embroidery_area_mm": {
+            "depth": 80,
+            "width": 55
+          },
+          "status": "verified"
+        }
+      ],
+      "source_urls": [
+        "https://www.tajima.com/product/tmbp2-sc/"
+      ],
+      "notes": "Frame support must be confirmed for exact machine and frame part number."
+    },
+    {
+      "family": "TMBR2-SC",
+      "machine_type": "single_head_cylinder",
+      "needles": [
+        6,
+        12,
+        15,
+        18
+      ],
+      "heads": [
+        1
+      ],
+      "embroidery_field_mm": {
+        "depth": 360,
+        "width": 500,
+        "status": "verified"
+      },
+      "frames": [
+        {
+          "type": "tubular",
+          "embroidery_area_mm": {
+            "depth": 360,
+            "width": 500
+          },
+          "status": "verified"
+        },
+        {
+          "type": "cap",
+          "embroidery_area_mm": {
+            "depth": 75,
+            "width": 360
+          },
+          "status": "verified"
+        },
+        {
+          "type": "pocket",
+          "embroidery_area_mm": {
+            "depth": 45,
+            "width": 80
+          },
+          "status": "verified"
+        },
+        {
+          "type": "pocket",
+          "embroidery_area_mm": {
+            "depth": 80,
+            "width": 55
+          },
+          "status": "verified"
+        }
+      ],
+      "source_urls": [
+        "https://www.tajima.com/product/tmbr2-sc/",
+        "https://www.tajima.com/wp-content/uploads/2024/04/TMBR2BP2_E.pdf"
+      ],
+      "notes": "Official brochure lists additional options including air-type clamp, air-type pocket, sock, M and X-extension frames; do not infer they are supplied as standard."
+    },
+    {
+      "family": "TMBP2-XC",
+      "machine_type": "single_head_cylinder",
+      "needles": [
+        12,
+        15
+      ],
+      "heads": [
+        1
+      ],
+      "embroidery_field_mm": {
+        "depth": 550,
+        "width": 600,
+        "status": "verified"
+      },
+      "frames": [
+        {
+          "type": "tubular",
+          "embroidery_area_mm": {
+            "depth": 550,
+            "width": 600
+          },
+          "status": "verified"
+        },
+        {
+          "type": "wide_cap",
+          "embroidery_area_mm": {
+            "depth": 75,
+            "width": 360
+          },
+          "status": "verified"
+        },
+        {
+          "type": "semi_wide_cap",
+          "embroidery_area_mm": {
+            "depth": 83,
+            "width": 180
+          },
+          "status": "verified"
+        },
+        {
+          "type": "pocket",
+          "embroidery_area_mm": {
+            "depth": 65,
+            "width": 100
+          },
+          "status": "verified"
+        },
+        {
+          "type": "pocket",
+          "embroidery_area_mm": {
+            "depth": 100,
+            "width": 75
+          },
+          "status": "verified"
+        },
+        {
+          "type": "x_extension",
+          "embroidery_area_mm": {
+            "depth": 550,
+            "width": 1200
+          },
+          "status": "verified",
+          "option": true
+        }
+      ],
+      "source_urls": [
+        "https://www.tajima.com/product/tmbp2-xc/"
+      ],
+      "notes": "X-extension is an option; actual stitchable range depends on configuration."
+    },
+    {
+      "family": "TMEZ-SC",
+      "machine_type": "single_head_cylinder",
+      "needles": [
+        9,
+        12,
+        15
+      ],
+      "heads": [
+        1
+      ],
+      "embroidery_field_mm": {
+        "depth": 360,
+        "width": 500,
+        "status": "verified"
+      },
+      "frames": [
+        {
+          "type": "tubular",
+          "embroidery_area_mm": {
+            "depth": 335,
+            "width": 453
+          },
+          "status": "verified"
+        },
+        {
+          "type": "wide_cap",
+          "embroidery_area_mm": {
+            "depth": 75,
+            "width": 360
+          },
+          "status": "verified"
+        },
+        {
+          "type": "semi_wide_cap",
+          "embroidery_area_mm": {
+            "depth": 83,
+            "width": 180
+          },
+          "status": "verified"
+        },
+        {
+          "type": "pocket",
+          "embroidery_area_mm": {
+            "depth": 45,
+            "width": 80
+          },
+          "status": "verified"
+        },
+        {
+          "type": "pocket",
+          "embroidery_area_mm": {
+            "depth": 80,
+            "width": 55
+          },
+          "status": "verified"
+        }
+      ],
+      "source_urls": [
+        "https://www.tajima.com/product/tmez-sc/"
+      ],
+      "notes": "Do not conflate 360x500 machine field with 335x453 tubular frame area."
+    },
+    {
+      "family": "TMEZ-KC",
+      "machine_type": "multi_head_cylinder",
+      "needles": [
+        9,
+        12,
+        15
+      ],
+      "heads": [
+        2,
+        4,
+        6,
+        8
+      ],
+      "head_interval_mm": [
+        360,
+        500
+      ],
+      "embroidery_field_configurations": [
+        {
+          "depth": 450,
+          "width": 360,
+          "head_interval": 360,
+          "status": "verified"
+        },
+        {
+          "depth": 450,
+          "width": 500,
+          "head_interval": 500,
+          "status": "verified"
+        }
+      ],
+      "frames": [
+        {
+          "type": "tubular",
+          "embroidery_area_configurations": [
+            {
+              "depth": 439,
+              "width": 279
+            },
+            {
+              "depth": 439,
+              "width": 419
+            }
+          ],
+          "status": "verified"
+        },
+        {
+          "type": "wide_cap",
+          "embroidery_area_mm": {
+            "depth": 75,
+            "width": 360
+          },
+          "status": "verified"
+        },
+        {
+          "type": "semi_wide_cap",
+          "embroidery_area_mm": {
+            "depth": 83,
+            "width": 180
+          },
+          "status": "verified"
+        }
+      ],
+      "source_urls": [
+        "https://www.tajima.com/product/tmez-kc/",
+        "https://www.tajima.com/wp-content/uploads/2024/04/TMEZ-KC.pdf"
+      ],
+      "notes": "Select exact model code/head count/head interval before using a configuration."
+    },
+    {
+      "family": "TMER-KC",
+      "machine_type": "multi_head_cylinder",
+      "needles": [
+        9,
+        12,
+        15
+      ],
+      "heads": [
+        2,
+        4,
+        6,
+        8
+      ],
+      "head_interval_mm": [
+        360,
+        500
+      ],
+      "embroidery_field_configurations": [
+        {
+          "depth": 450,
+          "width": 360,
+          "head_interval": 360,
+          "status": "verified"
+        },
+        {
+          "depth": 450,
+          "width": 500,
+          "head_interval": 500,
+          "status": "verified"
+        }
+      ],
+      "frames": [
+        {
+          "type": "tubular",
+          "embroidery_area_configurations": [
+            {
+              "depth": 439,
+              "width": 279
+            },
+            {
+              "depth": 439,
+              "width": 419
+            }
+          ],
+          "status": "verified"
+        },
+        {
+          "type": "wide_cap",
+          "embroidery_area_mm": {
+            "depth": 75,
+            "width": 360
+          },
+          "status": "verified"
+        },
+        {
+          "type": "semi_wide_cap",
+          "embroidery_area_mm": {
+            "depth": 83,
+            "width": 180
+          },
+          "status": "verified"
+        }
+      ],
+      "source_urls": [
+        "https://www.tajima.com/product/tmer-kc/"
+      ],
+      "notes": "Exact supported frame set is configuration-specific; confirm exact model."
+    },
+    {
+      "family": "TMAR-KC",
+      "machine_type": "multi_head_cylinder",
+      "needles": [
+        9,
+        12,
+        15
+      ],
+      "heads": {
+        "min": 2,
+        "max": 8
+      },
+      "head_interval_mm": [
+        360,
+        500
+      ],
+      "embroidery_field_configurations": [
+        {
+          "depth": 450,
+          "width": 360,
+          "head_interval": 360,
+          "status": "verified"
+        },
+        {
+          "depth": 450,
+          "width": 500,
+          "head_interval": 500,
+          "status": "verified"
+        }
+      ],
+      "frames": [
+        {
+          "type": "tubular",
+          "embroidery_area_configurations": [
+            {
+              "depth": 439,
+              "width": 279
+            },
+            {
+              "depth": 439,
+              "width": 419
+            }
+          ],
+          "status": "verified"
+        }
+      ],
+      "source_urls": [
+        "https://www.tajima.com/product/tmar-kc/"
+      ],
+      "notes": "Frame rows and exact head/interval configuration must be checked before recommendation."
+    },
+    {
+      "family": "TMAR-VC",
+      "machine_type": "multi_head_cylinder",
+      "needles": [
+        12,
+        15
+      ],
+      "heads": [
+        12
+      ],
+      "head_interval_mm": [
+        360
+      ],
+      "embroidery_field_mm": {
+        "depth": 450,
+        "width": 360,
+        "status": "verified"
+      },
+      "frames": [
+        {
+          "type": "tubular",
+          "embroidery_area_mm": {
+            "depth": 439,
+            "width": 279
+          },
+          "status": "verified"
+        }
+      ],
+      "source_urls": [
+        "https://www.tajima.com/product/tmar-vc/"
+      ],
+      "notes": "Only the published configuration shown in the source is represented here; verify exact variant."
+    },
+    {
+      "family": "TFMX-II C",
+      "machine_type": "multi_head_cylinder",
+      "needles": [
+        6,
+        9,
+        12,
+        15
+      ],
+      "heads": [
+        2,
+        4,
+        6,
+        8
+      ],
+      "head_interval_mm": [
+        360,
+        500
+      ],
+      "embroidery_field_configurations": [
+        {
+          "depth": 450,
+          "width": 360,
+          "head_interval": 360,
+          "status": "verified"
+        },
+        {
+          "depth": 450,
+          "width": 500,
+          "head_interval": 500,
+          "status": "verified"
+        }
+      ],
+      "frames": [
+        {
+          "type": "tubular",
+          "embroidery_area_configurations": [
+            {
+              "depth": 439,
+              "width": 279
+            },
+            {
+              "depth": 439,
+              "width": 419
+            }
+          ],
+          "status": "verified"
+        },
+        {
+          "type": "wide_cap",
+          "embroidery_area_mm": {
+            "depth": 75,
+            "width": 360
+          },
+          "status": "verified"
+        },
+        {
+          "type": "semi_wide_cap",
+          "embroidery_area_mm": {
+            "depth": 83,
+            "width": 180
+          },
+          "status": "verified"
+        },
+        {
+          "type": "pocket",
+          "embroidery_area_configurations": [
+            {
+              "depth": 65,
+              "width": 100
+            },
+            {
+              "depth": 100,
+              "width": 75
+            }
+          ],
+          "status": "verified"
+        }
+      ],
+      "source_urls": [
+        "https://www.tajima.com/product/tfmx-2c/",
+        "https://www.tajima.com/wp-content/uploads/2024/04/TFMX-2CTYPE2_E.pdf"
+      ],
+      "notes": "The PDF is for TFMX-IIC Type-2 series; do not apply it to every historical TFMX revision."
+    },
+    {
+      "family": "TMCR-VF",
+      "machine_type": "multi_head_flat",
+      "needles": null,
+      "heads": null,
+      "embroidery_field_mm": null,
+      "source_urls": [
+        "https://www.tajima.com/product/tmcr-vf/"
+      ],
+      "status": "partial",
+      "notes": "Flat multi-head configurations have model-specific fields, head intervals, and continuous-pattern overlap; import each exact model row before use."
+    },
+    {
+      "family": "TMCR-VF+i-TM",
+      "machine_type": "multi_head_flat",
+      "needles": null,
+      "heads": null,
+      "embroidery_field_mm": null,
+      "source_urls": [
+        "https://www.tajima.com/product/tmcr-vf-itm/"
+      ],
+      "status": "partial",
+      "notes": "Configuration-specific; exact row-level model data not normalized in this first registry."
+    },
+    {
+      "family": "TMCP-VF",
+      "machine_type": "multi_head_flat",
+      "needles": null,
+      "heads": null,
+      "embroidery_field_mm": null,
+      "source_urls": [
+        "https://www.tajima.com/product/tmcp-vf/"
+      ],
+      "status": "partial",
+      "notes": "Configuration-specific; exact row-level model data not normalized in this first registry."
+    },
+    {
+      "family": "TMCS-VF",
+      "machine_type": "multi_head_flat",
+      "needles": null,
+      "heads": null,
+      "embroidery_field_mm": null,
+      "source_urls": [
+        "https://www.tajima.com/product/"
+      ],
+      "status": "unknown",
+      "notes": "Listed in Tajima current product catalogue; exact model specifications remain to be sourced."
+    }
+  ],
+  "digitizing_recipe_policy": {
+    "default_numeric_values": "none",
+    "required_properties": [
+      "fabric_class",
+      "stitch_type",
+      "density",
+      "underlay",
+      "pull_compensation",
+      "stitch_length",
+      "tie_in",
+      "tie_off",
+      "source_evidence"
+    ],
+    "evidence_status": [
+      "manufacturer_documented",
+      "DG_preset_documented",
+      "operator_supplied",
+      "sample_calibrated",
+      "not_verified"
+    ],
+    "unverified_values_must_be_null": true,
+    "note": "Do not infer thread tension, bobbin tension, presser-foot pressure, needle size, or machine speed from DST."
+  },
+  "production_qa": {
+    "required": [
+      "design_bounds_mm",
+      "stitch_count",
+      "color_change_count",
+      "jump_count",
+      "trim_count_if_available",
+      "stitch_type_summary",
+      "sequence_review",
+      "long_stitch_review",
+      "short_stitch_review",
+      "overlap_density_review",
+      "frame_compatibility_operator_confirmation",
+      "physical_sew_out_required"
+    ],
+    "pass_label": "software_checks_passed_physical_sew_out_required"
+  },
+  "global_frame_compatibility_source": "https://www.tajima.com/product/frame/"
+}
