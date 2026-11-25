@@ -1,0 +1,91 @@
+# Tajima Compatibility Reference — Khayt 3D
+
+**Reference revision:** 2026-11-25  
+**Status:** Initial verified baseline; not a complete catalogue of every historical, regional, or discontinued Tajima machine.
+
+## Purpose and safety rule
+
+Khayt 3D prepares embroidery geometry and stitch records. The workshop/operator remains responsible for selecting the physically installed frame, mounting the garment, checking machine-specific limits, and setting mechanical conditions.
+
+This reference deliberately separates:
+
+1. **Machine embroidery field** — the manufacturer's published maximum field for a particular model/configuration.
+2. **Frame embroidery area** — the area published for a named frame; frame compatibility is model-dependent.
+3. **Artwork dimensions** — the requested design width and height in millimetres.
+4. **Safe usable area** — must not be inferred from the nominal field. It depends on the installed frame, presser foot, product, clamps, and operating conditions.
+
+Tajima explicitly states that usable field and speed may vary by model, product, and operating conditions, and that actual stitchable area may be limited by the frame and presser foot. Do not treat the maximum field as an unconditional design canvas.
+
+## Verified model records
+
+All dimensions below preserve the manufacturer's stated order and labels. Where the source says D×W, D means depth and W means width. Do not silently swap axes.
+
+| Model / family | Verified manufacturer data | Source |
+|---|---|---|
+| SAI | 8 needles; maximum field D 200 × W 300 mm. Large tubular frame 200 × 300 mm; small tubular frame 100 × 100 mm (2025 brochure). | [SAI product page](https://www.tajima.com/product/sai/), [SAI 2025 brochure](https://www.tajima.com/wp-content/uploads/2025/06/SAI_EN_PDF_2506.pdf) |
+| TMBP2-SC | 6/12/15 needles; field 360 × 500 mm; wide cap 75 × 360 mm; semi-wide cap 83 × 180 mm; tubular 360 × 500 mm; pocket frame 45 × 80 mm (published table). | [TMBP2-SC](https://www.tajima.com/product/tmbp2-sc/) |
+| TMBR2-SC | 6/12/15/18 needles; field 360 × 500 mm; tubular 360 × 500 mm; cap 75 × 360 mm; pocket 45 × 80 mm and 80 × 55 mm; further optional frames listed in official brochure. | [TMBR2-SC](https://www.tajima.com/product/tmbr2-sc/), [TMBR2/TMBP2 brochure](https://www.tajima.com/wp-content/uploads/2024/04/TMBR2BP2_E.pdf) |
+| TMBP2-XC | 12/15 needles; field 550 × 600 mm; wide cap 75 × 360 mm; semi-wide cap 83 × 180 mm; tubular 550 × 600 mm; pocket 65 × 100 mm or 100 × 75 mm; optional X-extension 550 × 1,200 mm. | [TMBP2-XC](https://www.tajima.com/product/tmbp2-xc/) |
+| TMEZ-SC | 9/12/15 needles; field 360 × 500 mm; cap 75 × 360 mm; semi-wide cap 83 × 180 mm; tubular 335 × 453 mm; pocket 45 × 80 mm or 80 × 55 mm. | [TMEZ-SC](https://www.tajima.com/product/tmez-sc/) |
+| TMEZ-KC | 9/12/15 needles; 2/4/6/8 heads; head interval 360 or 500 mm. Configurations include field 450 × 360 mm or 450 × 500 mm; cap 75 × 360 mm; semi-wide cap 83 × 180 mm; tubular 439 × 279 mm or 439 × 419 mm. | [TMEZ-KC](https://www.tajima.com/product/tmez-kc/), [official TMEZ-KC specification PDF](https://www.tajima.com/wp-content/uploads/2024/04/TMEZ-KC.pdf) |
+| TMER-KC | 9/12/15 needles; 2/4/6/8 heads; 360/500 mm head interval; published configurations include field 450 × 360 mm or 450 × 500 mm, cap 75 × 360 mm, semi-wide cap 83 × 180 mm, tubular 439 × 279 mm or 439 × 419 mm. | [TMER-KC](https://www.tajima.com/product/tmer-kc/) |
+| TMAR-KC | 9/12/15 needles; 2–8 heads; published configurations include 450 × 360 mm or 450 × 500 mm field and tubular 439 × 279 mm or 439 × 419 mm; verify exact head/interval configuration. | [TMAR-KC](https://www.tajima.com/product/tmar-kc/) |
+| TMAR-VC | 12-head series; published configuration shown with 450 × 360 mm field and tubular 439 × 279 mm; confirm exact variant before use. | [TMAR-VC](https://www.tajima.com/product/tmar-vc/) |
+| TFMX-II C | Multi-head cylinder family; published configurations vary by head count and head interval. Official Type-2 PDF lists border 450 × 360/500 mm, tubular 439 × 279/419 mm, cap 75 × 360 mm, semi-wide cap 83 × 180 mm, pocket 65 × 100 or 100 × 75 mm where supported. | [TFMX-II C](https://www.tajima.com/product/tfmx-2c/), [official Type-2 specification PDF](https://www.tajima.com/wp-content/uploads/2024/04/TFMX-2CTYPE2_E.pdf) |
+| TMCR-VF / TMCR-VF+i-TM | Flat multi-head families. Field is configuration-specific; official tables list model-dependent dimensions, head intervals and continuous-pattern overlap. Do not assign a single universal field to the family. | [TMCR-VF](https://www.tajima.com/product/tmcr-vf/), [TMCR-VF+i-TM](https://www.tajima.com/product/tmcr-vf-itm/) |
+| TMCP-VF | Flat multi-head family; field and head interval are configuration-specific. Read the exact model row from the official product table. | [TMCP-VF](https://www.tajima.com/product/tmcp-vf/) |
+| TMCS-VF | Flat multi-head family listed in Tajima's current product catalogue; detailed model-specific field data still needs to be captured from its current official catalogue/manual. | [Tajima machine catalogue](https://www.tajima.com/product/) |
+
+## Frame compatibility is not universal
+
+Tajima's frame catalogue explicitly says frame compatibility differs by machine model and directs users to confirm sizes and compatible machines. The listed frame families include border, tubular, M, cap, pocket, sock, rotary-knob clamp, air-type clamp, air-type pocket, and X-extension. Therefore Khayt 3D must not display every frame as compatible with every machine.
+
+Source: [Tajima embroidery frames](https://www.tajima.com/product/frame/).
+
+## Digitizing settings: what Khayt 3D may and may not assume
+
+Tajima DG16 documentation describes fabric recipes and per-segment controls such as underlay, density, push/pull compensation, stitch types, sequence editing, and stitch settings. It does **not** justify one universal density, pull compensation, underlay, stitch length, or tension value for every fabric and design.
+
+Sources: [Tajima DG16 product/software information](https://fonts.pulsemicro.com/Home/Embroidery), [DG16 catalogue PDF](https://tajima.com.vn/wp-content/uploads/2021/03/TAJIMA-DG16.pdf).
+
+Implementation rules:
+
+- Keep fill density, satin density, underlay, pull compensation, stitch length, and tie-in/tie-off as explicit per-object/per-recipe properties.
+- A recipe must identify fabric class, stitch type, source document/version, and whether its values are manufacturer-published, software-preset-derived, operator-entered, or test-calibrated.
+- Until exact numeric values are verified from an authoritative document or a controlled sew-out, store them as `null` / `not_verified`; never silently substitute guessed defaults.
+- Do not infer upper-thread tension, bobbin tension, presser-foot pressure, needle size, thread type, or machine speed from a DST file. These depend on the machine, material, consumables, and operator setup.
+- Do not call a design “production-ready” solely because its geometry passes software checks. Use “software checks passed — physical sew-out required” until an actual sample has been approved.
+
+## DST handoff contract
+
+DST is the stitch-data handoff file, not a complete machine setup package. Khayt 3D should provide a companion production sheet containing at least:
+
+- design width and height (mm), orientation, and origin/center reference;
+- stitch count, color-change/stop count, jump count, trim count if reliably available;
+- stitch-type summary (running, tatami/fill, satin, etc.);
+- sequence and color chart (brand/thread color mapping is a separate human-readable aid);
+- detected long stitches, short stitches, dense overlaps, and other QA warnings;
+- fabric/recipe identifier and its evidence status;
+- a statement that the operator must verify the installed compatible frame and run a sample.
+
+Do not claim that DST preserves thread brand names, exact color names, fabric recipe, hoop selection, or all machine-specific controller settings.
+
+## Coverage status and next research work
+
+This first pass captures the currently listed Tajima product families and records a subset of model-specific specifications verified from official product pages or official brochures. It is **not yet an exhaustive compatibility database** for every legacy/discontinued machine, regional option, serial-number revision, or accessory.
+
+Before enabling automatic frame recommendations in the UI, complete these tasks:
+
+1. Extract every configuration row from official PDFs for all current product families.
+2. Capture model codes, needle count, head count, head interval, field D×W, frame types/sizes, and optional extension limits as separate fields.
+3. Add discontinued/legacy models only when official documentation is available.
+4. Store source URL, document title, publication/revision date, access date, and page/table reference for every numeric field.
+5. Add a compatibility matrix linking each frame SKU to the exact supported machine model/configuration.
+6. Add a validation state: `verified`, `partial`, `unknown`, or `operator_confirmation_required`.
+
+## Official sources
+
+- [Tajima current embroidery machine product catalogue](https://www.tajima.com/product/)
+- [Tajima frame catalogue and compatibility notice](https://www.tajima.com/product/frame/)
+- [Tajima DG software documentation/downloads](https://cloud.pulsemicro.com/Download/Documentation)
+- [Tajima DG16 software feature reference](https://fonts.pulsemicro.com/Home/Embroidery)
