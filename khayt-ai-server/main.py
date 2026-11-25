@@ -731,7 +731,7 @@ objects مصفوفة من 3 إلى 18 كائناً. كل كائن يحتوي nam
                         return f"العنصر {index}: رمز اللون غير صالح."
                 return None
 
-                    def flower_completeness_problem(value: dict[str, Any] | None) -> str | None:
+            def flower_completeness_problem(value: dict[str, Any] | None) -> str | None:
                 if not re.search(r"(توليب|وردة|زهرة|tulip|rose|flower)", prompt, re.IGNORECASE):
                     return None
                 objects = value.get("objects", []) if isinstance(value, dict) else []
