@@ -572,6 +572,16 @@ objects مصفوفة من 3 إلى 18 كائناً. كل كائن يحتوي nam
 لا تدّعِ أن الناتج ملف DST نهائي؛ إنه مقترح هندسي سيحوّله البرنامج إلى غرز.
 """
 
+    if re.search(r"(توليب|وردة|زهرة|tulip|rose|flower)", prompt, re.IGNORECASE):
+        instructions += (
+            "\\nقاعدة اكتمال إلزامية لهذا الطلب الزهري: أنشئ ثلاث بتلات منفصلة على الأقل، "
+            "وكل بتلة يجب أن تكون كائناً مغلقاً مستقلاً من نوع tatami واسمه يتضمن كلمة بتلة؛ "
+            "لا تحتسب حافة satin على أنها بتلة. أنشئ ورقتين خضراوين على الأقل، "
+            "وكل ورقة كائن مغلق مستقل tatami واسمه يتضمن ورقة، وأنشئ ساقاً واحدة على الأقل "
+            "كائن satin مفتوح واسمه ساق. لا تحذف أو ترقم أجزاء التصميم مع ترك جزء مفقود."
+        )
+
+
     user_content: list[dict[str, Any]] = [{
         "type": "text",
         "text": prompt or "حلّل الصورة المرجعية وأنشئ منها تصميماً مناسباً للتطريز.",
@@ -754,15 +764,6 @@ objects مصفوفة من 3 إلى 18 كائناً. كل كائن يحتوي nam
 
             def contains_objects(value: dict[str, Any] | None) -> bool:
                 return geometry_problem(value) is None and flower_completeness_problem(value) is None
-
-            if re.search(r"(توليب|وردة|زهرة|tulip|rose|flower)", prompt, re.IGNORECASE):
-                instructions += (
-                    "\\nقاعدة اكتمال إلزامية لهذا الطلب الزهري: أنشئ ثلاث بتلات منفصلة على الأقل، "
-                    "وكل بتلة يجب أن تكون كائناً مغلقاً مستقلاً من نوع tatami واسمه يتضمن كلمة بتلة؛ "
-                    "لا تحتسب حافة satin على أنها بتلة. أنشئ ورقتين خضراوين على الأقل، "
-                    "وكل ورقة كائن مغلق مستقل tatami واسمه يتضمن ورقة، وأنشئ ساقاً واحدة على الأقل "
-                    "كائن satin مفتوح واسمه ساق. لا تحذف أو ترقم أجزاء التصميم مع ترك جزء مفقود."
-                )
 
             # Retry once with a shorter, internally consistent geometry contract.
             if not contains_objects(payload):
