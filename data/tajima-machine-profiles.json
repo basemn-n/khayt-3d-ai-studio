@@ -693,5 +693,106 @@
     ],
     "pass_label": "software_checks_passed_physical_sew_out_required"
   },
-  "global_frame_compatibility_source": "https://www.tajima.com/product/frame/"
+  "global_frame_compatibility_source": "https://www.tajima.com/product/frame/",
+  "primary_workflows": [
+    {
+      "id": "FULL_PANEL",
+      "label": "Full fabric panel / full energy panel",
+      "priority": 1,
+      "required_inputs": [
+        "panel_width_mm",
+        "panel_height_mm",
+        "stitch_area_width_mm",
+        "stitch_area_height_mm",
+        "placement_origin",
+        "fabric_class",
+        "operator_confirmed_machine_model",
+        "operator_confirmed_frame"
+      ],
+      "machine_guidance": "Prioritize flat-type Tajima machines and compatible border frames for cut fabric before garment assembly. Verify exact model/frame compatibility.",
+      "source_urls": [
+        "https://www.tajima.support/Manual_machine/%E8%8B%B1%E8%AA%9E/M-EMB-05-EN.pdf",
+        "https://www.tajima.com/product/frame/",
+        "https://www.tajima.com/product/tmcp-vf/"
+      ]
+    },
+    {
+      "id": "BORDER_HEM",
+      "label": "Border / hem",
+      "priority": 2,
+      "required_inputs": [
+        "border_length_mm",
+        "border_width_mm",
+        "path_direction",
+        "start_margin_mm",
+        "end_margin_mm",
+        "fabric_class",
+        "operator_confirmed_frame"
+      ],
+      "machine_guidance": "Use border-frame workflow only where supported by exact model; continuous/repositioned pattern workflow requires machine-specific confirmation.",
+      "source_urls": [
+        "https://www.tajima.com/product/frame/"
+      ]
+    },
+    {
+      "id": "SLEEVE_HAND",
+      "label": "Sleeve / hand section",
+      "priority": 3,
+      "required_inputs": [
+        "placement_width_mm",
+        "placement_height_mm",
+        "left_or_right",
+        "mirror_confirmation",
+        "fabric_class",
+        "operator_confirmed_frame"
+      ],
+      "machine_guidance": "Confirm physical access, frame and clearance for exact garment and machine. Do not assume all cylinder frames fit every sleeve.",
+      "source_urls": [
+        "https://www.tajima.com/product/frame/",
+        "https://www.tajima.support/Manual_machine/%E8%8B%B1%E8%AA%9E/M-EMB-05-EN.pdf"
+      ]
+    },
+    {
+      "id": "GARMENT_PANEL",
+      "label": "Garment front/back panel",
+      "priority": 4,
+      "required_inputs": [
+        "panel_identifier",
+        "panel_width_mm",
+        "panel_height_mm",
+        "placement_origin",
+        "fabric_class",
+        "operator_confirmed_frame"
+      ],
+      "machine_guidance": "For cut garment pieces prioritize flat-type machine; for finished garment assess cylinder-type access and exact frame compatibility.",
+      "source_urls": [
+        "https://www.tajima.support/Manual_machine/%E8%8B%B1%E8%AA%9E/M-EMB-05-EN.pdf",
+        "https://www.tajima.com/product/frame/"
+      ]
+    }
+  ],
+  "machine_family_guidance": {
+    "flat_type": {
+      "preferred_for": [
+        "cut fabric",
+        "full panels",
+        "large continuous artwork",
+        "garment parts before sewing"
+      ],
+      "source_urls": [
+        "https://www.tajima.support/Manual_machine/%E8%8B%B1%E8%AA%9E/M-EMB-05-EN.pdf",
+        "https://www.tajima.com/product/frame/"
+      ]
+    },
+    "cylinder_type": {
+      "preferred_for": [
+        "finished garments where tubular mounting is suitable",
+        "caps and cylindrical products",
+        "accessible garment sections"
+      ],
+      "source_urls": [
+        "https://www.tajima.support/Manual_machine/%E8%8B%B1%E8%AA%9E/M-EMB-05-EN.pdf"
+      ]
+    }
+  }
 }
