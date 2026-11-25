@@ -378,7 +378,23 @@ function buildLayoutBorderProduction(){
    else if(color!==lastColor){records.push({command:'color',color});lastColor=color}
    const first=mapPoint(ss[0],offset);
    if(previous)records.push({x:first.x,y:first.y,jump:true});
-   ss.forEach(st=>{const p=mapPoint(st,offset);records.push({x:p.x,y:p.y,jump:!!st.jump})});
+   // Preserve the source design. Subdivide only the independent production copy.
+   const maxProductionStitch=6.5;
+   let previousSewnPoint=null;
+   for(const st of ss){
+    const p=mapPoint(st,offset);
+    if(st.jump){records.push({x:p.x,y:p.y,jump:true});previousSewnPoint=null;continue}
+    if(previousSewnPoint){
+     const dx=p.x-previousSewnPoint.x,dy=p.y-previousSewnPoint.y,distance=Math.hypot(dx,dy);
+     const pieces=Math.max(1,Math.ceil(distance/maxProductionStitch));
+     for(let part=1;part<pieces;part++){
+      const t=part/pieces;
+      records.push({x:previousSewnPoint.x+dx*t,y:previousSewnPoint.y+dy*t,jump:false});
+     }
+    }
+    records.push({x:p.x,y:p.y,jump:false});
+    previousSewnPoint=p;
+   }
    const last=mapPoint(ss[ss.length-1],offset);previous=last;objectCopies++;
   }
  }
@@ -388,14 +404,14 @@ function buildLayoutBorderProduction(){
  if(colors.size>15)throw new Error('عدد ألوان الخيط يتجاوز 15 لوناً؛ راجع التصميم قبل التصدير');
  let bad=records.find(r=>!r.command&&(!Number.isFinite(r.x)||!Number.isFinite(r.y)||r.x<-.01||r.y<-.01||r.x>target.w+.01||r.y>target.h+.01));
  if(bad)throw new Error('توجد نقطة غرز خارج حدود الحاشية؛ أوقفنا التصدير لحماية التصميم');
- let last=null;
- for(const r of records){if(r.command)continue;if(r.jump){last=null;continue}if(last&&Math.hypot(r.x-last.x,r.y-last.y)>7.2)throw new Error('وجدنا غرزة أطول من 7 مم بعد التحويل؛ أوقفنا التصدير للفحص');last=r}
+ let last=null,maxObservedStitch=0;
+ for(const r of records){if(r.command)continue;if(r.jump){last=null;continue}if(last){const length=Math.hypot(r.x-last.x,r.y-last.y);maxObservedStitch=Math.max(maxObservedStitch,length);if(length>7.01)throw new Error('بقيت غرزة بطول '+length.toFixed(2)+' مم بعد تقسيم المسار؛ أوقفنا الإنتاج للفحص')}last=r}
  const firstObject=S.objects.find(o=>(o.stitches||[]).length);
- return {target,count,records,stitchCount:stitches.length,jumpCount:jumps.length,colorCount:colors.size,objectCopies,initialColor:firstObject?.color||'#176447',motifScale:fit};
+ return {target,count,records,stitchCount:stitches.length,jumpCount:jumps.length,colorCount:colors.size,objectCopies,maxStitchLength:maxObservedStitch,initialColor:firstObject?.color||'#176447',motifScale:fit};
 }
 function showLayoutProductionSummary(result){
  const box=$('layoutProductionSummary');if(!box)return;
- box.textContent='تم تجهيز '+result.count+' ورود فعلية على الحاشية · '+result.stitchCount.toLocaleString('ar')+' غرزة · '+result.colorCount+' ألوان · '+result.jumpCount.toLocaleString('ar')+' قفزات/انتقالات. المقاس الناتج: '+result.target.w+' × '+result.target.h+' مم. الوردة الأصلية لم تتغير؛ هذه نسخة إنتاج مستقلة للحاشية.';
+ box.textContent='تم تجهيز '+result.count+' ورود فعلية على الحاشية · '+result.stitchCount.toLocaleString('ar')+' غرزة · أطول غرزة '+result.maxStitchLength.toFixed(2)+' مم · '+result.colorCount+' ألوان · '+result.jumpCount.toLocaleString('ar')+' قفزات/انتقالات. المقاس الناتج: '+result.target.w+' × '+result.target.h+' مم. الوردة الأصلية لم تتغير؛ هذه نسخة إنتاج مستقلة للحاشية.';
  $('exportLayoutDST').disabled=false;
 }
 $('buildLayoutEmbroidery').onclick=()=>{
