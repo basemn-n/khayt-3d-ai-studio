@@ -42,7 +42,8 @@
 (()=>{'use strict';
 const $=id=>document.getElementById(id), canvas=$('board'),ctx=canvas.getContext('2d');
 const stageInfo=[['إعداد المشروع والقماش','حدد مساحة العمل والخامة قبل البدء في رسم التصميم.'],['استيراد الصورة وتجهيزها','أدرج صورة مرجعية، اضبط ظهورها، ثم تتبع حدودها بأدوات الرسم.'],['رسم الأشكال والمسارات','استخدم Fusion Fill للرسم الحر، أو أدوات الخطوط والأشكال الأساسية.'],['التعبئة المعقدة والحصير','حوّل المسارات المغلقة إلى Tatami أو Motif Fill واضبط كثافة الغرز واتجاهها.'],['مدخلات A / B / C والساتان','ارسم أعمدة الساتان بنقاط متقابلة أو حدوداً خارجية، ثم اضبط عرضها وخط المنتصف.'],['الخطوط والزخارف','أنشئ تشغيل أحادي أو ثلاثي أو زخرفي أو زجزاج رفيع وعريض.'],['الأبليك ثلاثي المراحل','جهّز حدود الرقعة، وغرز التثبيت، وغطاء الساتان بالترتيب.'],['محاكاة الغرز والمراجعة','شاهد ترتيب الغرز والقفزات، ثم افحص طول الغرزة والكثافة والحدود.'],['التصدير والإنتاج','احفظ المشروع، وأنشئ ملف DST وتقرير إعدادات التشغيل.'],['تخطيط القماش والقص','وزّع مناطق التطريز وحدود قص القطع على قطعة القماش كاملة حسب طلب الزبون.']];
-const layoutPlan={fabricW:1400,fabricH:1800,pieces:[],selected:-1};\nconst S={step:0,tool:'select',objects:[],selected:-1,points:[],shapeDraft:null,awaitDirection:false,image:null,imageVisible:true,zoom:1,thread:'#176447',fabric:'#f4f0e8',playing:false,progress:0,stitches:[],view:'design',last:null,nodeDrag:null};
+const layoutPlan={fabricW:1400,fabricH:1800,pieces:[],selected:-1};
+const S={step:0,tool:'select',objects:[],selected:-1,points:[],shapeDraft:null,awaitDirection:false,image:null,imageVisible:true,zoom:1,thread:'#176447',fabric:'#f4f0e8',playing:false,progress:0,stitches:[],view:'design',last:null,nodeDrag:null};
 let simViewZoom=1,simViewX=0,simViewY=0,simPan=null;
 const history={undo:[],redo:[],limit:60};
 let simTimer=null;
