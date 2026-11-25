@@ -70,6 +70,47 @@ DST is the stitch-data handoff file, not a complete machine setup package. Khayt
 
 Do not claim that DST preserves thread brand names, exact color names, fabric recipe, hoop selection, or all machine-specific controller settings.
 
+
+
+## Priority workflow: full garment panels, borders, and sleeves
+
+Khayt 3D's primary production target is embroidery on **abaya/coat panels and large fabric pieces**, especially full-panel work. Secondary targets are border/hem embroidery and sleeve/hand sections. This affects machine-family guidance:
+
+- **Cut fabric before garment assembly / full panel / large continuous artwork:** prioritize Tajima **flat-type** machines and border frames. Tajima's machine manual classifies flat-type machines as suitable for embroidery on cut or original fabric. The official frame catalogue describes border frames as intended for fabric before it is made into products and for large-lot items such as curtains, bedding, pillow cases, and patches.
+- **Finished garment, tubular access, sleeves or constrained garment areas:** cylinder-type machines may be appropriate where the garment can be mounted on the compatible tubular/frame system. Actual access and field depend on garment construction and model.
+- **Border / hem:** model- and frame-specific border-frame workflow; long borders may require repeated positioning or a continuous-pattern function. Do not automatically split a long border into segments until overlap/registration rules for the exact machine and frame are known.
+- **Sleeves / hand sections:** treat as a separate placement job. The design file should retain an origin/center reference and mirrored variant where needed; frame compatibility and clearance must be checked for the exact machine.
+- **Full panel coverage:** artwork dimensions must be captured in mm from the actual cut piece or approved pattern. The machine's nominal field is not the garment size. If the artwork exceeds the available field, Khayt 3D must flag it and offer manual panel segmentation only after the operator confirms the frame, repositioning method, and registration marks.
+
+### Production presets in the UI
+
+Add named workflow choices, not invented stitch recipes:
+
+1. `FULL_PANEL` — full cut fabric / full panel; requires panel width × height, placement origin, fabric class, and operator-confirmed frame.
+2. `BORDER_HEM` — border or hem; requires border length × width, path direction, start/end margins, and whether the machine workflow supports continuous/repositioned sewing.
+3. `SLEEVE_HAND` — sleeve/hand section; requires left/right selection, placement dimensions, and mirror confirmation.
+4. `GARMENT_PANEL` — front/back/specific garment panel; requires panel identifier and dimensions.
+
+These are **design workflow profiles**, not claims that a particular Tajima machine supports a given garment or frame. The UI must show machine family (flat/cylinder), exact model/configuration, frame compatibility status, and evidence source separately.
+
+### Tajima source basis for this priority
+
+- Tajima machine operation manual: flat-type machines are suitable for cut/original fabric; cylinder-type machines are suitable for cylindrical products such as completed clothes and caps. [Official Tajima machine manual (PDF)](https://www.tajima.support/Manual_machine/%E8%8B%B1%E8%AA%9E/M-EMB-05-EN.pdf)
+- Tajima frame catalogue: border frame is a standard frame for flat-type machines and is intended for fabric before product assembly; compatibility varies by machine model. [Official frame catalogue](https://www.tajima.com/product/frame/)
+- Tajima TMCP-VF: flat-type machine intended for fabrics and parts before sewing, including large-lot apparel. [Official TMCP-VF page](https://www.tajima.com/product/tmcp-vf/)
+- Tajima TMCR-VF: flat-type machine for stable mass production; DCP helps hold material across thickness changes. [Official TMCR-VF page](https://www.tajima.com/product/tmcr-vf/)
+- Tajima TMCS-VF: official page lists concrete model configurations and embroidery fields; do not generalize one row to all models. [Official TMCS-VF page](https://www.tajima.com/product/tmcs-vf/)
+
+### Required full-panel QA additions
+
+- Require panel width/height in mm and distinguish fabric-piece dimensions from intended stitch area.
+- Show artwork bounding box, margins, center/origin, and orientation.
+- Warn when artwork approaches or exceeds the selected model/frame field; never silently scale or crop.
+- For repeated or segmented panels, require operator-approved registration/overlap strategy.
+- For paired sleeves, verify left/right mirroring and placement separately.
+- Estimate stitch count and production complexity, but do not infer runtime from stitch count alone.
+- Continue to require a physical sample; full-panel work can reveal fabric movement, distortion, hooping and registration issues not caught by geometry checks.
+
 ## Coverage status and next research work
 
 This first pass captures the currently listed Tajima product families and records a subset of model-specific specifications verified from official product pages or official brochures. It is **not yet an exhaustive compatibility database** for every legacy/discontinued machine, regional option, serial-number revision, or accessory.
