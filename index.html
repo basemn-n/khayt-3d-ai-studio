@@ -546,6 +546,8 @@ async function exportDST(){
 $('downloadDST').textContent='تنزيل ملف DST';$('exportDST').textContent='تصدير DST';$('downloadDST').onclick=exportDST;$('exportDST').onclick=exportDST;$('downloadSpec').onclick=()=>{let report=`تقرير تصميم التطريز للمعمل\nصيغة التسليم: DST\nالمشروع: ${$('projectName').value}\nنوع القماش المرجعي: ${$('fabric').value}\nمقاس التصميم: ${$('fabricW').value} × ${$('fabricH').value} مم (ليس مقاس الطارة)\nعدد الكائنات: ${S.objects.length}\nعدد الغرز المقدرة: ${S.stitches.length}\n\n`;S.objects.forEach((o,i)=>report+=`${i+1}. ${o.tool} | ${o.stitches?.length||0} غرزة | اللون ${o.color}\n`);report+='\nملاحظة للمعمل: يحدد صاحب الماكينة الطارة والمقاس وإعدادات التشغيل المناسبة، ويفحص التصميم قبل الإنتاج.\nتنبيه DST: قد تحتاج ألوان الخيوط إلى تعيين يدوي على لوحة الماكينة.\n\n'+$('qaReport').textContent;downloadBlob(new Blob([report],{type:'text/plain;charset=utf-8'}),($('dstName').value||'design')+'-report.txt')};
 const restoredDraft=restoreDraft();syncLayoutInputs();updateLayoutSummary();$('watchLayoutEmbroidery').disabled=!layoutPlan.pieces.some(p=>p.type==='border');syncSimulationControls();$('fabricSize').textContent=`${$('fabricW').value} × ${$('fabricH').value} مم`;setStep(0);setTool('select');recalc();if(restoredDraft)toast('تم استعادة آخر مسودة محفوظة تلقائياً');updateHistoryButtons();updateHistoryButtons();window.addEventListener('beforeunload',persistDraft);document.addEventListener('pointerup',persistDraft);
 })();
+const $=id=>document.getElementById(id);
+
 
 let borderSimResult=null,borderSimCursor=0,borderSimTimer=null,borderSimPlaying=false,borderSimZoom=1,borderSimPanX=0,borderSimPanY=0,borderSimDrag=null;
 const borderSimCanvas=$('borderSimCanvas'),borderSimCtx=borderSimCanvas?.getContext('2d');
@@ -623,7 +625,7 @@ function borderSimEndDrag(e){if(borderSimDrag&&(!e||borderSimDrag.id===e.pointer
 borderSimCanvas.addEventListener('pointerup',borderSimEndDrag);borderSimCanvas.addEventListener('pointercancel',borderSimEndDrag);
 
 
-const $=id=>document.getElementById(id);
+
 </script>
 
 </body></html>
