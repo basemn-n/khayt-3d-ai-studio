@@ -223,6 +223,7 @@ async function exportDST(){
    records.push(...ss.map(s=>({x:s.x,y:s.y,jump:!!s.jump})));
    prev=ss[ss.length-1];
  });
+ if(records.length>120000){toast('أوقفنا التصدير: عدد سجلات DST بعد إضافة الانتقالات يتجاوز حد الخادم (120 ألفاً). قلّل كثافة الغرز أو قسّم التصميم.');return}
  const first=S.objects.find(o=>(o.stitches||[]).length);
  const payload={name:$('dstName').value||$('projectName').value||'Khayt Design',width_mm:readNum('fabricW',300),height_mm:readNum('fabricH',300),initial_color:first?.color||'#176447',stitches:records};
  const btn=$('exportDST');if(btn)btn.disabled=true;
